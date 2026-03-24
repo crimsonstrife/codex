@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fix Bootstrap .collapse conflict with Tailwind */
+.collapse {
+    visibility: visible;
+}
+
+[x-cloak] {
+    display: none;
+}
+
+/* ── Callout / admonition blocks ─────────────────────────────────────────── */
+.callout {
+    border-left: 4px solid;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0 0.375rem 0.375rem 0;
+}
+.callout p:last-child { margin-bottom: 0; }
+.callout::before {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.35rem;
+    opacity: 0.75;
+}
+.callout-note   { border-color: #0d6efd; background: rgba(13, 110, 253, 0.08); color: inherit; }
+.callout-note::before   { content: "Note"; color: #0d6efd; }
+.callout-tip    { border-color: #198754; background: rgba(25, 135, 84, 0.08); color: inherit; }
+.callout-tip::before    { content: "Tip"; color: #198754; }
+.callout-warning { border-color: #fd7e14; background: rgba(253, 126, 20, 0.08); color: inherit; }
+.callout-warning::before { content: "Warning"; color: #fd7e14; }
+.callout-danger  { border-color: #dc3545; background: rgba(220, 53, 69, 0.08); color: inherit; }
+.callout-danger::before  { content: "Danger"; color: #dc3545; }
+.callout-success { border-color: #20c997; background: rgba(32, 201, 151, 0.08); color: inherit; }
+.callout-success::before { content: "Success"; color: #20c997; }
+.callout-design-decision { border-color: #6f42c1; background: rgba(111, 66, 193, 0.08); color: inherit; }
+.callout-design-decision::before { content: "Design Decision"; color: #6f42c1; }
+
+/* ── Wiki-style internal links [[Page Title]] ────────────────────────────── */
+.wiki-link {
+    color: #0d6efd;
+    text-decoration: underline;
+}
+.wiki-link:hover {
+    color: #0a58ca;
+}
+/* Broken links — page title not found in workspace */
+.wiki-link-broken {
+    color: #dc3545;
+    text-decoration: underline dotted;
+    cursor: help;
+}
+.wiki-link-broken::after {
+    content: " ?";
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+/* ── Workspace table/tree view toggle ────────────────────────────────────── */
+/* Hides the ToC column when the page-table view is active */
+.view-force-hidden {
+    display: none !important;
+}
