@@ -5,7 +5,7 @@ namespace App\CommonMark;
 use League\CommonMark\Parser\Block\BlockStart;
 use League\CommonMark\Parser\Block\BlockStartParserInterface;
 use League\CommonMark\Parser\Cursor;
-use League\CommonMark\Parser\MarkdownParserState;
+use League\CommonMark\Parser\MarkdownParserStateInterface;
 
 /**
  * Detects the opening fence of a callout block: :::type
@@ -27,7 +27,7 @@ final class CalloutStartParser implements BlockStartParserInterface
         'design-decision',
     ];
 
-    public function tryStart(Cursor $cursor, MarkdownParserState $parserState): ?BlockStart
+    public function tryStart(Cursor $cursor, MarkdownParserStateInterface $parserState): ?BlockStart
     {
         if ($cursor->isIndented()) {
             return BlockStart::none();

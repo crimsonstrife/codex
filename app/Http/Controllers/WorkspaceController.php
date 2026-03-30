@@ -6,6 +6,7 @@ use App\Models\Page;
 use App\Models\Workspace;
 use App\Services\ForgeService;
 use App\Support\CodexRuntimeConfig;
+use App\Support\PageNavigationResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -54,16 +55,28 @@ class WorkspaceController extends Controller
         $pinnedPages = $workspace->pinnedPages()->get();
 
         $homePage = null;
+        $homePageChildPages = collect();
+        $homePagePrevious = null;
+        $homePageNext = null;
         if ($workspace->home_page_id) {
             $homePage = $workspace->homePage()
-                ->with(['author', 'categories', 'tags', 'children',
+                ->with(['author', 'categories', 'tags',
                     'comments.user', 'comments.replies.user'])
                 ->first();
+
+            if ($homePage) {
+                [
+                    'childPages' => $homePageChildPages,
+                    'previousPage' => $homePagePrevious,
+                    'nextPage' => $homePageNext,
+                ] = app(PageNavigationResolver::class)->resolve($allPages, $homePage);
+            }
         }
 
         return view('workspaces.show', compact(
             'workspace', 'pages', 'allPages', 'diagrams', 'activities',
-            'membersPreview', 'memberCount', 'pinnedPages', 'homePage'
+            'membersPreview', 'memberCount', 'pinnedPages', 'homePage',
+            'homePageChildPages', 'homePagePrevious', 'homePageNext'
         ));
     }
 
