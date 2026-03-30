@@ -34,6 +34,29 @@ class AdminOperationsAccessTest extends TestCase
             'batch' => $batch,
         ]);
 
+        HealthCheckResultHistoryItem::create([
+            'check_name' => 'security-advisories',
+            'check_label' => 'Security Advisories',
+            'status' => 'failed',
+            'notification_message' => 'Security advisories found for `laravel/framework`',
+            'short_summary' => 'Attention required',
+            'meta' => [
+                'laravel/framework' => [
+                    [
+                        'advisoryId' => 'PKSA-123',
+                        'packageName' => 'laravel/framework',
+                        'title' => 'Remote code execution in routing pipeline',
+                        'link' => 'https://github.com/advisories/GHSA-test',
+                        'cve' => 'CVE-2026-1234',
+                        'affectedVersions' => '<11.4.1',
+                        'reportedAt' => '2026-03-20T14:30:00+00:00',
+                    ],
+                ],
+            ],
+            'ended_at' => now(),
+            'batch' => $batch,
+        ]);
+
         $admin = User::factory()->create();
         $admin->assignRole('SuperAdmin');
 
@@ -53,10 +76,20 @@ class AdminOperationsAccessTest extends TestCase
                 ->assertSee($text);
         }
 
+        $this->actingAs($admin)
+            ->get('/admin/system-health')
+            ->assertOk()
+            ->assertSee('laravel/framework')
+            ->assertSee('Remote code execution in routing pipeline')
+            ->assertSee('CVE-2026-1234');
+
         $this->get('/status')
             ->assertOk()
+            ->assertSee('Laravel Health')
             ->assertSee('Database')
-            ->assertSee('Operational');
+            ->assertSee('laravel/framework')
+            ->assertSee('Remote code execution in routing pipeline')
+            ->assertSee('CVE-2026-1234');
     }
 
     public function test_panel_user_without_specific_permissions_cannot_access_new_admin_operations_surfaces(): void

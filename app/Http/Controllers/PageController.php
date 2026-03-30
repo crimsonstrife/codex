@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Services\PageLinkResolver;
 use App\Support\CodexRuntimeConfig;
+use App\Support\PageNavigationResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,6 +52,13 @@ class PageController extends Controller
         $this->authorize('view', $page);
 
         $breadcrumbs = $page->ancestors()->get()->push($page);
+        $orderedPages = $workspace->pages()->defaultOrder()->get();
+        $pageTree = $orderedPages->toTree();
+        [
+            'childPages' => $childPages,
+            'previousPage' => $previousPage,
+            'nextPage' => $nextPage,
+        ] = app(PageNavigationResolver::class)->resolve($orderedPages, $page);
 
         // Workspaces the user can transfer this page to (must be owner or editor/admin)
         $transferableWorkspaces = collect();
@@ -103,7 +111,8 @@ class PageController extends Controller
 
         return view('pages.show', compact(
             'workspace', 'page', 'breadcrumbs', 'transferableWorkspaces',
-            'incomingLinks', 'brokenOutgoingLinks'
+            'incomingLinks', 'brokenOutgoingLinks', 'pageTree',
+            'childPages', 'previousPage', 'nextPage'
         ));
     }
 
