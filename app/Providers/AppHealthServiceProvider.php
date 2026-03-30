@@ -18,7 +18,7 @@ class AppHealthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->app->booted(function (): void {
-            Health::checks([
+            $checks = [
                 DatabaseCheck::new()
                     ->name('Database')
                     ->everyMinute(),
@@ -26,16 +26,6 @@ class AppHealthServiceProvider extends ServiceProvider
                 CacheCheck::new()
                     ->name('Cache')
                     ->everyFiveMinutes(),
-
-                QueueCheck::new()
-                    ->name('Queue')
-                    ->everyFiveMinutes()
-                    ->unless(fn (): bool => app()->environment('testing') || config('queue.default') === 'sync'),
-
-                ScheduleCheck::new()
-                    ->name('Scheduler')
-                    ->everyMinute()
-                    ->unless(fn (): bool => app()->environment(['local', 'testing'])),
 
                 OptimizedAppCheck::new()
                     ->name('Optimization')
@@ -55,7 +45,21 @@ class AppHealthServiceProvider extends ServiceProvider
                 SecurityAdvisoriesCheck::new()
                     ->name('Security Advisories')
                     ->daily(),
-            ]);
+            ];
+
+            if (! app()->environment('testing') && config('queue.default') !== 'sync') {
+                $checks[] = QueueCheck::new()
+                    ->name('Queue')
+                    ->everyFiveMinutes();
+            }
+
+            if (! app()->environment(['local', 'testing'])) {
+                $checks[] = ScheduleCheck::new()
+                    ->name('Scheduler')
+                    ->everyMinute();
+            }
+
+            Health::checks($checks);
         });
     }
 }
