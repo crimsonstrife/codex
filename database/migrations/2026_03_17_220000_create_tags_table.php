@@ -18,10 +18,10 @@ return new class extends Migration
         });
 
         Schema::create('taggables', function (Blueprint $table) {
-            $table->unsignedBigInteger('tag_id');
+            $table->id();
+            $table->foreignId('tag_id')->constrained()->cascadeOnDelete();
             $table->uuidMorphs('taggable');
-
-            $table->foreign('tag_id')->references('id')->on('tags')->cascadeOnDelete();
+            $table->unique(['tag_id', 'taggable_id', 'taggable_type']);
         });
     }
 
