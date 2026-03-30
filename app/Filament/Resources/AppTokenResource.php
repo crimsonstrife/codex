@@ -33,7 +33,7 @@ class AppTokenResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('abilities')
                     ->label('Abilities')
-                    ->formatStateUsing(fn (?array $state): string => implode(', ', $state ?? []))
+                    ->formatStateUsing(static fn (mixed $state): string => static::formatAbilities($state))
                     ->wrap(),
                 Tables\Columns\TextColumn::make('token')
                     ->label('Token Hash')
@@ -59,5 +59,25 @@ class AppTokenResource extends Resource
         return [
             'index' => Pages\ListAppTokens::route('/'),
         ];
+    }
+
+    protected static function formatAbilities(mixed $state): string
+    {
+        if (is_string($state)) {
+            $decoded = json_decode($state, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $state = $decoded;
+            }
+        }
+
+        if (! is_array($state)) {
+            return blank($state) ? '' : (string) $state;
+        }
+
+        return implode(', ', array_values(array_filter(
+            array_map(static fn (mixed $ability): string => trim((string) $ability), $state),
+            static fn (string $ability): bool => $ability !== '',
+        )));
     }
 }
