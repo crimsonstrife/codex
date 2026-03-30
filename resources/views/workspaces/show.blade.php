@@ -389,12 +389,46 @@
                                 @endif
                             </div>
 
+                            @if($homePagePrevious || $homePageNext)
+                            <div class="border-top px-4 py-4">
+                                <nav aria-label="Page navigation">
+                                    <div class="row g-3">
+                                        @if($homePagePrevious)
+                                            <div class="col-sm-6">
+                                                <a href="{{ route('workspaces.pages.show', [$workspace, $homePagePrevious]) }}"
+                                                   class="card card-hover text-decoration-none border p-3 h-100"
+                                                   aria-label="Previous page: {{ $homePagePrevious->title }}">
+                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-1">
+                                                        <i class="fas fa-arrow-left me-1"></i> Previous page
+                                                    </div>
+                                                    <div class="fw-medium">{{ $homePagePrevious->title }}</div>
+                                                </a>
+                                            </div>
+                                        @endif
+
+                                        @if($homePageNext)
+                                            <div class="col-sm-6 {{ $homePagePrevious ? '' : 'offset-sm-6' }}">
+                                                <a href="{{ route('workspaces.pages.show', [$workspace, $homePageNext]) }}"
+                                                   class="card card-hover text-decoration-none border p-3 h-100 text-sm-end"
+                                                   aria-label="Next page: {{ $homePageNext->title }}">
+                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-1">
+                                                        Next page <i class="fas fa-arrow-right ms-1"></i>
+                                                    </div>
+                                                    <div class="fw-medium">{{ $homePageNext->title }}</div>
+                                                </a>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </nav>
+                            </div>
+                            @endif
+
                             {{-- Sub-pages --}}
-                            @if($homePage->children->isNotEmpty())
+                            @if($homePageChildPages->isNotEmpty())
                             <div class="card-footer p-4">
                                 <h6 class="small fw-semibold text-uppercase text-body-secondary mb-3">Sub-pages</h6>
                                 <div class="row g-2">
-                                    @foreach($homePage->children as $child)
+                                    @foreach($homePageChildPages as $child)
                                         <div class="col-sm-6">
                                             <a href="{{ route('workspaces.pages.show', [$workspace, $child]) }}"
                                                class="card card-hover text-decoration-none border p-3 h-100">

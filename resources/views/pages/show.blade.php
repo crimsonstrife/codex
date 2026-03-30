@@ -32,10 +32,7 @@
                             </a>
                         </div>
                         <div class="list-group list-group-flush">
-                            @php
-                                $allPages = $workspace->pages()->defaultOrder()->get()->toTree();
-                            @endphp
-                            @include('pages._page_tree', ['pages' => $allPages, 'workspace' => $workspace, 'depth' => 0, 'activePage' => $page, 'sortable' => auth()->user()?->can('update', $page)])
+                            @include('pages._page_tree', ['pages' => $pageTree, 'workspace' => $workspace, 'depth' => 0, 'activePage' => $page, 'sortable' => auth()->user()?->can('update', $page)])
                         </div>
                     </div>
                 </div>
@@ -270,12 +267,46 @@
                             @endif
                         </div>
 
+                        @if($previousPage || $nextPage)
+                            <div class="border-top px-4 py-4">
+                                <nav aria-label="Page navigation">
+                                    <div class="row g-3">
+                                        @if($previousPage)
+                                            <div class="col-sm-6">
+                                                <a href="{{ route('workspaces.pages.show', [$workspace, $previousPage]) }}"
+                                                   class="card card-hover text-decoration-none border p-3 h-100"
+                                                   aria-label="Previous page: {{ $previousPage->title }}">
+                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-1">
+                                                        <i class="fas fa-arrow-left me-1"></i> Previous page
+                                                    </div>
+                                                    <div class="fw-medium">{{ $previousPage->title }}</div>
+                                                </a>
+                                            </div>
+                                        @endif
+
+                                        @if($nextPage)
+                                            <div class="col-sm-6 {{ $previousPage ? '' : 'offset-sm-6' }}">
+                                                <a href="{{ route('workspaces.pages.show', [$workspace, $nextPage]) }}"
+                                                   class="card card-hover text-decoration-none border p-3 h-100 text-sm-end"
+                                                   aria-label="Next page: {{ $nextPage->title }}">
+                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-1">
+                                                        Next page <i class="fas fa-arrow-right ms-1"></i>
+                                                    </div>
+                                                    <div class="fw-medium">{{ $nextPage->title }}</div>
+                                                </a>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </nav>
+                            </div>
+                        @endif
+
                         {{-- Child pages --}}
-                        @if($page->children->isNotEmpty())
+                        @if($childPages->isNotEmpty())
                             <div class="card-footer p-4">
                                 <h6 class="small fw-semibold text-uppercase text-body-secondary mb-3">Sub-pages</h6>
                                 <div class="row g-2">
-                                    @foreach($page->children as $child)
+                                    @foreach($childPages as $child)
                                         <div class="col-sm-6">
                                             <a href="{{ route('workspaces.pages.show', [$workspace, $child]) }}"
                                                class="card card-hover text-decoration-none border p-3 h-100">
@@ -753,10 +784,10 @@
                     <p class="mb-2">
                         You are about to delete <strong>{{ $page->title }}</strong>.
                     </p>
-                    @if($page->children->isNotEmpty())
+                    @if($childPages->isNotEmpty())
                         <div class="alert alert-warning py-2 small mb-2">
                             <i class="fas fa-sitemap me-1"></i>
-                            This page has <strong>{{ $page->children->count() }}</strong> sub-{{ Str::plural('page', $page->children->count()) }}.
+                            This page has <strong>{{ $childPages->count() }}</strong> sub-{{ Str::plural('page', $childPages->count()) }}.
                             They will be moved up to this page's parent level.
                         </div>
                     @endif
@@ -796,9 +827,9 @@
                         <div class="modal-body">
                             <p class="small text-body-secondary mb-3">
                                 Move <strong>{{ $page->title }}</strong>
-                                @if($page->children->isNotEmpty())
-                                    and its <strong>{{ $page->children->count() }}</strong>
-                                    sub-{{ Str::plural('page', $page->children->count()) }}
+                                @if($childPages->isNotEmpty())
+                                    and its <strong>{{ $childPages->count() }}</strong>
+                                    sub-{{ Str::plural('page', $childPages->count()) }}
                                 @endif
                                 to another workspace. You must have editor or admin access to the target workspace.
                             </p>

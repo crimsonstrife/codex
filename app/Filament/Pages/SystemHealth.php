@@ -2,11 +2,14 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\HealthCheckResultPresenter;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Spatie\Health\Commands\RunHealthChecksCommand;
+use Spatie\Health\Health;
 use Spatie\Health\ResultStores\ResultStore;
 use Throwable;
 
@@ -24,16 +27,18 @@ class SystemHealth extends Page
 
     protected static ?string $slug = 'system-health';
 
-    protected string $view = 'filament.pages.system-health';
+    protected string $view = 'filament.pages.health-check-results';
 
-    public ?string $finishedAt = null;
+    public ?string $lastRanLabel = null;
 
-    public bool $allChecksOk = false;
+    public bool $staleResults = false;
+
+    public string $healthAssets = '';
 
     /**
      * @var array<int, array<string, mixed>>
      */
-    public array $checkResults = [];
+    public array $presentedResults = [];
 
     public function mount(): void
     {
@@ -48,19 +53,12 @@ class SystemHealth extends Page
             $results = null;
         }
 
-        $this->finishedAt = $results?->finishedAt?->format('M j, Y g:i:s A');
-        $this->allChecksOk = $results?->allChecksOk() ?? false;
-        $this->checkResults = $results?->storedCheckResults
-            ->map(fn ($result): array => [
-                'name' => $result->name,
-                'label' => $result->label,
-                'status' => $result->status,
-                'shortSummary' => $result->shortSummary,
-                'notificationMessage' => $result->notificationMessage,
-                'meta' => $result->meta,
-            ])
-            ->values()
-            ->all() ?? [];
+        $finishedAt = $results?->finishedAt ? Carbon::parse($results->finishedAt) : null;
+
+        $this->lastRanLabel = $finishedAt?->diffForHumans();
+        $this->staleResults = $finishedAt?->diffInMinutes() > 5;
+        $this->healthAssets = app(Health::class)->assets()->toHtml();
+        $this->presentedResults = HealthCheckResultPresenter::present($results?->storedCheckResults ?? []);
     }
 
     protected function getHeaderActions(): array
