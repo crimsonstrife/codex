@@ -1,9 +1,9 @@
 <?php
 
+use App\Console\Commands\DispatchQueueHeartbeatCommand;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use Spatie\Health\Commands\DispatchQueueCheckJobsCommand;
 use Spatie\Health\Commands\RunHealthChecksCommand;
 use Spatie\Health\Commands\ScheduleCheckHeartbeatCommand;
 
@@ -19,6 +19,6 @@ app()->booted(function (): void {
     $schedule->command(ScheduleCheckHeartbeatCommand::class)->everyMinute();
 
     if (config('queue.default') !== 'sync') {
-        $schedule->command(DispatchQueueCheckJobsCommand::class)->everyMinute();
+        $schedule->command(DispatchQueueHeartbeatCommand::class)->everyMinute();
     }
 });
