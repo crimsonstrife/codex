@@ -100,7 +100,7 @@
                     @else
                     <div class="card shadow-sm overflow-hidden" style="height: 560px;">
                         <iframe id="drawio-frame"
-                            src="{{ config('codex.diagrams.drawio_url', 'https://embed.diagrams.net') }}?embed=1&spin=1&proto=json&libraries=1&xml={{ urlencode($diagram->diagram_data ?? '') }}"
+                            src="{{ $drawioUrl }}?embed=1&spin=1&proto=json&libraries=1&xml={{ urlencode($diagram->diagram_data ?? '') }}"
                             style="width:100%;height:100%;border:none;"></iframe>
                     </div>
                     @endif

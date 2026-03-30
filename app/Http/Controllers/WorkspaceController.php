@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Page;
 use App\Models\Workspace;
+use App\Services\ForgeService;
+use App\Support\CodexRuntimeConfig;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,7 +18,7 @@ class WorkspaceController extends Controller
         $workspaces = Workspace::withCount('pages')
             ->where(function ($q) {
                 $q->where('is_public', true)
-                    ->orWhereHas('members', fn($m) => $m->where('user_id', auth()->id()))
+                    ->orWhereHas('members', fn ($m) => $m->where('user_id', auth()->id()))
                     ->orWhere('owner_id', auth()->id());
             })
             ->paginate(12);
@@ -34,10 +36,10 @@ class WorkspaceController extends Controller
             ->defaultOrder()
             ->get();
 
-        $pages    = $allPages->toTree();
+        $pages = $allPages->toTree();
         $diagrams = $workspace->diagrams()->latest('updated_at')->get();
 
-        $pageIds    = $workspace->pages()->pluck('id');
+        $pageIds = $workspace->pages()->pluck('id');
         $activities = Activity::with(['causer', 'subject'])
             ->whereIn('subject_id', $pageIds)
             ->where('subject_type', Page::class)
@@ -46,7 +48,7 @@ class WorkspaceController extends Controller
             ->get();
 
         // Members for the sidebar strip (cap display at 6; pass total count for "+N" overflow)
-        $memberCount    = $workspace->members()->count();
+        $memberCount = $workspace->members()->count();
         $membersPreview = $workspace->members()->orderBy('name')->limit(6)->get();
 
         $pinnedPages = $workspace->pinnedPages()->get();
@@ -55,7 +57,7 @@ class WorkspaceController extends Controller
         if ($workspace->home_page_id) {
             $homePage = $workspace->homePage()
                 ->with(['author', 'categories', 'tags', 'children',
-                        'comments.user', 'comments.replies.user'])
+                    'comments.user', 'comments.replies.user'])
                 ->first();
         }
 
@@ -76,10 +78,10 @@ class WorkspaceController extends Controller
     {
         $this->authorize('create', Workspace::class);
         $validated = $request->validate([
-            'name'        => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'is_public'   => 'boolean',
-            'color'       => 'nullable|string|max:7',
+            'is_public' => 'boolean',
+            'color' => 'nullable|string|max:7',
         ]);
 
         $validated['owner_id'] = auth()->id();
@@ -94,15 +96,15 @@ class WorkspaceController extends Controller
     {
         $this->authorize('update', $workspace);
 
-        $memberCount    = $workspace->members()->count();
+        $memberCount = $workspace->members()->count();
         $membersPreview = $workspace->members()->orderBy('name')->limit(5)->get();
 
         $forgeProjects = [];
-        if (config('codex.forge.enabled')) {
+        if (CodexRuntimeConfig::forgeApiConfigured()) {
             // Pass the current user's Forge ID so only their projects are shown.
             // If they haven't linked their Forge account, getProjects() returns [].
             $forgeUserId = auth()->user()?->forge_user_id;
-            $forgeProjects = app(\App\Services\ForgeService::class)->getProjects($forgeUserId);
+            $forgeProjects = app(ForgeService::class)->getProjects($forgeUserId);
         }
 
         return view('workspaces.edit', compact('workspace', 'membersPreview', 'memberCount', 'forgeProjects'));
@@ -113,12 +115,12 @@ class WorkspaceController extends Controller
         $this->authorize('update', $workspace);
 
         $validated = $request->validate([
-            'name'              => 'required|string|max:255',
-            'description'       => 'nullable|string',
-            'color'             => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
-            'icon'              => 'nullable|string|max:10',
-            'is_public'         => 'boolean',
-            'forge_project_id'  => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'color' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
+            'icon' => 'nullable|string|max:10',
+            'is_public' => 'boolean',
+            'forge_project_id' => 'nullable|string|max:255',
             'forge_project_key' => 'nullable|string|max:255',
         ]);
 

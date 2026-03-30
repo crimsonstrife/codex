@@ -130,7 +130,7 @@
             </form>
 
             {{-- Forge Integration card --}}
-            @if(config('codex.forge.enabled'))
+            @if(\App\Support\CodexRuntimeConfig::forgeEnabled() && filled(\App\Support\CodexRuntimeConfig::forgeUrl()))
             <div class="card shadow-sm mt-4">
                 <div class="card-header py-3 d-flex align-items-center justify-content-between">
                     <h2 class="h6 fw-semibold mb-0">
@@ -152,7 +152,7 @@
                                     <span class="font-monospace">{{ $workspace->forge_project_key ?? $workspace->forge_project_id }}</span>
                                 </p>
                                 <p class="mb-0 small text-body-secondary">
-                                    <a href="{{ rtrim(config('codex.forge.url'), '/') }}/projects/{{ $workspace->forge_project_id }}"
+                                    <a href="{{ \App\Support\CodexRuntimeConfig::forgeUrl() }}/projects/{{ $workspace->forge_project_id }}"
                                        target="_blank" rel="noopener">
                                         Open in Forge <i class="fas fa-external-link-alt ms-1" style="font-size:0.7rem;"></i>
                                     </a>

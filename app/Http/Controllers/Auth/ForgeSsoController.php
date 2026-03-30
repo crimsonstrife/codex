@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\ConnectedApp;
 use App\Models\User;
+use App\Support\CodexRuntimeConfig;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -15,7 +16,7 @@ class ForgeSsoController extends Controller
 {
     public function redirect(): RedirectResponse
     {
-        if (! config('codex.forge.enabled')) {
+        if (! CodexRuntimeConfig::forgeSsoAvailable()) {
             return redirect()->route('login')->with('error', 'Forge SSO is not enabled.');
         }
 
@@ -24,7 +25,7 @@ class ForgeSsoController extends Controller
 
     public function callback(): RedirectResponse
     {
-        if (! config('codex.forge.enabled')) {
+        if (! CodexRuntimeConfig::forgeSsoAvailable()) {
             return redirect()->route('login')->with('error', 'Forge SSO is not enabled.');
         }
 
@@ -46,14 +47,19 @@ class ForgeSsoController extends Controller
                     ->with('error', 'Forge did not return an email address. Please ensure your Forge account has a verified email.');
             }
 
-            $user = User::firstOrCreate(
-                ['email' => $email],
-                [
-                    'name'              => $socialUser->getName() ?? $socialUser->getNickname() ?? $email,
-                    'password'          => Hash::make(Str::random(32)),
-                    'email_verified_at' => now(),
-                ]
-            );
+            $user = User::where('email', $email)->first();
+
+            if (! $user && ! CodexRuntimeConfig::registrationEnabled()) {
+                return redirect()->route('login')
+                    ->with('error', 'Self-registration is currently disabled. Please contact an administrator.');
+            }
+
+            $user ??= User::create([
+                'name' => $socialUser->getName() ?? $socialUser->getNickname() ?? $email,
+                'email' => $email,
+                'password' => Hash::make(Str::random(32)),
+                'email_verified_at' => now(),
+            ]);
         }
 
         // 3. Stamp the forge_user_id for fast future lookups
@@ -65,17 +71,17 @@ class ForgeSsoController extends Controller
         // 4. Store/refresh the OAuth tokens for possible future per-user API calls
         ConnectedApp::updateOrCreate(
             [
-                'user_id'  => $user->id,
+                'user_id' => $user->id,
                 'provider' => 'forge',
             ],
             [
                 'provider_user_id' => (string) $socialUser->getId(),
-                'access_token'     => $socialUser->token,
-                'refresh_token'    => $socialUser->refreshToken,
+                'access_token' => $socialUser->token,
+                'refresh_token' => $socialUser->refreshToken,
                 'token_expires_at' => $socialUser->expiresIn
                     ? now()->addSeconds((int) $socialUser->expiresIn)
                     : null,
-                'scopes'           => $socialUser->approvedScopes ?? [],
+                'scopes' => $socialUser->approvedScopes ?? [],
             ]
         );
 

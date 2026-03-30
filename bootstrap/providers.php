@@ -1,9 +1,17 @@
 <?php
 
+use App\Providers\AppHealthServiceProvider;
+use App\Providers\AppServiceProvider;
+use App\Providers\AuthServiceProvider;
+use App\Providers\Filament\AdminPanelProvider;
+use App\Providers\FortifyServiceProvider;
+use App\Providers\JetstreamServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\AuthServiceProvider::class,
-    App\Providers\FortifyServiceProvider::class,
-    App\Providers\JetstreamServiceProvider::class,
-    App\Providers\Filament\AdminPanelProvider::class,
+    AppServiceProvider::class,
+    AppHealthServiceProvider::class,
+    AuthServiceProvider::class,
+    FortifyServiceProvider::class,
+    JetstreamServiceProvider::class,
+    AdminPanelProvider::class,
 ];
