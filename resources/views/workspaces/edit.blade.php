@@ -104,6 +104,7 @@
                     </div>
                     <div class="card-body p-4">
                         <div class="form-check form-switch">
+                            <input type="hidden" name="is_public" value="0">
                             <input class="form-check-input" type="checkbox" role="switch"
                                    id="is_public" name="is_public" value="1"
                                    {{ old('is_public', $workspace->is_public) ? 'checked' : '' }}>
@@ -205,7 +206,7 @@
                             </script>
                         @else
                             <p class="small text-body-secondary mb-0">
-                                No Forge projects found. Ensure <code>FORGE_TOKEN</code> and <code>FORGE_URL</code> are configured.
+                                No Forge projects found. Ensure your Forge account is linked and the Forge client credentials are configured.
                             </p>
                         @endif
                     @endif

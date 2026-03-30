@@ -122,11 +122,20 @@ class WorkspaceController extends Controller
             'forge_project_key' => 'nullable|string|max:255',
         ]);
 
-        $validated['is_public'] = $request->boolean('is_public');
+        if ($request->exists('is_public')) {
+            $validated['is_public'] = $request->boolean('is_public');
+        }
 
-        // Normalize empty strings to null for Forge fields so unlinking clears the column
-        $validated['forge_project_id']  = $validated['forge_project_id'] ?: null;
-        $validated['forge_project_key'] = $validated['forge_project_key'] ?: null;
+        if ($request->exists('forge_project_id') || $request->exists('forge_project_key')) {
+            $forgeProjectId = $validated['forge_project_id'] ?? null;
+            $forgeProjectKey = $validated['forge_project_key'] ?? null;
+
+            // Normalize empty strings to null for Forge fields so unlinking clears the columns
+            $validated['forge_project_id'] = $forgeProjectId ?: null;
+            $validated['forge_project_key'] = $validated['forge_project_id']
+                ? ($forgeProjectKey ?: null)
+                : null;
+        }
 
         $workspace->update($validated);
 

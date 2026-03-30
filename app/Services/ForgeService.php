@@ -44,8 +44,8 @@
         public function __construct()
         {
             $this->baseUrl      = rtrim(config('codex.forge.url', ''), '/');
-            $this->clientId     = config('codex.forge.m2m_client_id');
-            $this->clientSecret = config('codex.forge.m2m_client_secret');
+            $this->clientId     = config('codex.forge.m2m_client_id') ?: config('codex.forge.client_id');
+            $this->clientSecret = config('codex.forge.m2m_client_secret') ?: config('codex.forge.client_secret');
         }
 
         /**
