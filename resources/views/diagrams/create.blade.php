@@ -39,7 +39,7 @@
                                         Native: runs entirely in the browser, no external service needed.
                                     </div>
                                     <div class="form-text text-warning" x-show="diagramType === 'drawio'">
-                                        Requires access to <code>{{ config('codex.diagrams.drawio_url', 'https://embed.diagrams.net') }}</code>
+                                        Requires access to <code>{{ $drawioUrl }}</code>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -111,7 +111,7 @@
                     <div x-show="diagramType === 'drawio'" style="display:none;">
                         <div class="card shadow-sm overflow-hidden" style="height: 560px;">
                             <iframe id="drawio-frame"
-                                src="{{ config('codex.diagrams.drawio_url', 'https://embed.diagrams.net') }}?embed=1&spin=1&proto=json&libraries=1"
+                                src="{{ $drawioUrl }}?embed=1&spin=1&proto=json&libraries=1"
                                 style="width:100%;height:100%;border:none;"></iframe>
                         </div>
                         <p class="mt-2 text-warning small">

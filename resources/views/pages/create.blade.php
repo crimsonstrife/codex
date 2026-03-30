@@ -111,10 +111,10 @@
                             <x-label for="content_type" value="{{ __('Editor Type') }}"/>
                             <select name="content_type" id="content_type" class="form-select">
                                 <option
-                                    value="richtext" {{ old('content_type', 'richtext') === 'richtext' ? 'selected' : '' }}>
+                                    value="richtext" {{ old('content_type', $defaultContentType) === 'richtext' ? 'selected' : '' }}>
                                     Rich Text (WYSIWYG)
                                 </option>
-                                <option value="markdown" {{ old('content_type') === 'markdown' ? 'selected' : '' }}>
+                                <option value="markdown" {{ old('content_type', $defaultContentType) === 'markdown' ? 'selected' : '' }}>
                                     Markdown
                                 </option>
                             </select>

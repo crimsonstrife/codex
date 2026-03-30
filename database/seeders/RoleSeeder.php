@@ -15,13 +15,13 @@ class RoleSeeder extends Seeder
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $super        = $Role::firstOrCreate(['name' => 'SuperAdmin',   'guard_name' => 'web']);
-        $admin        = $Role::firstOrCreate(['name' => 'Admin',        'guard_name' => 'web']);
-        $editor       = $Role::firstOrCreate(['name' => 'Editor',       'guard_name' => 'web']);
-        $contributor  = $Role::firstOrCreate(['name' => 'Contributor',  'guard_name' => 'web']);
-        $viewer       = $Role::firstOrCreate(['name' => 'Viewer',       'guard_name' => 'web']);
+        $super = $Role::firstOrCreate(['name' => 'SuperAdmin',   'guard_name' => 'web']);
+        $admin = $Role::firstOrCreate(['name' => 'Admin',        'guard_name' => 'web']);
+        $editor = $Role::firstOrCreate(['name' => 'Editor',       'guard_name' => 'web']);
+        $contributor = $Role::firstOrCreate(['name' => 'Contributor',  'guard_name' => 'web']);
+        $viewer = $Role::firstOrCreate(['name' => 'Viewer',       'guard_name' => 'web']);
 
-        $get = static fn(array $names) => $Permission::query()
+        $get = static fn (array $names) => $Permission::query()
             ->whereIn('name', $names)
             ->pluck('name')
             ->all();
@@ -32,12 +32,15 @@ class RoleSeeder extends Seeder
             'admin.panel.access',
             'filament.access',
             'settings.manage',
+            'health.view',
+            'logs.manage',
             'workspaces.view', 'workspaces.create', 'workspaces.update', 'workspaces.delete', 'workspaces.manage',
             'pages.view', 'pages.create', 'pages.update', 'pages.delete', 'pages.publish',
             'diagrams.view', 'diagrams.create', 'diagrams.update', 'diagrams.delete', 'diagrams.publish',
-            'users.view', 'users.create', 'users.update',
+            'users.view', 'users.create', 'users.update', 'users.delete',
             'roles.view', 'roles.manage',
             'permissions.view', 'permissions.manage',
+            'permission_sets.view', 'permission_sets.manage',
         ]));
 
         $admin->syncPermissions($get([
@@ -45,12 +48,15 @@ class RoleSeeder extends Seeder
             'admin.panel.access',
             'filament.access',
             'settings.manage',
+            'health.view',
+            'logs.manage',
             'workspaces.view', 'workspaces.create', 'workspaces.update', 'workspaces.delete', 'workspaces.manage',
             'pages.view', 'pages.create', 'pages.update', 'pages.delete', 'pages.publish',
             'diagrams.view', 'diagrams.create', 'diagrams.update', 'diagrams.delete', 'diagrams.publish',
-            'users.view', 'users.create', 'users.update',
+            'users.view', 'users.create', 'users.update', 'users.delete',
             'roles.view', 'roles.manage',
             'permissions.view', 'permissions.manage',
+            'permission_sets.view', 'permission_sets.manage',
         ]));
 
         $editor->syncPermissions($get([

@@ -4,24 +4,28 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PageResource\Pages;
 use App\Models\Page;
+use App\Support\CodexRuntimeConfig;
+use Filament\Actions;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Filament\Actions;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
 class PageResource extends Resource
 {
     protected static ?string $model = Page::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Content';
+
     protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
@@ -49,9 +53,9 @@ class PageResource extends Resource
                     ->preload(),
                 Select::make('status')
                     ->options([
-                        'draft'     => 'Draft',
+                        'draft' => 'Draft',
                         'published' => 'Published',
-                        'archived'  => 'Archived',
+                        'archived' => 'Archived',
                     ])
                     ->default('draft')
                     ->required(),
@@ -60,7 +64,7 @@ class PageResource extends Resource
                         'markdown' => 'Markdown',
                         'richtext' => 'Rich Text',
                     ])
-                    ->default('markdown')
+                    ->default(fn (): string => CodexRuntimeConfig::defaultPageContentType())
                     ->required()
                     ->live(),
             ])->columns(2),
@@ -89,8 +93,8 @@ class PageResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'published' => 'success',
-                        'archived'  => 'gray',
-                        default     => 'warning',
+                        'archived' => 'gray',
+                        default => 'warning',
                     }),
                 Tables\Columns\TextColumn::make('updated_at')->dateTime()->sortable(),
             ])
@@ -99,9 +103,9 @@ class PageResource extends Resource
                     ->relationship('workspace', 'name'),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
-                        'draft'     => 'Draft',
+                        'draft' => 'Draft',
                         'published' => 'Published',
-                        'archived'  => 'Archived',
+                        'archived' => 'Archived',
                     ]),
                 Tables\Filters\TrashedFilter::make(),
             ])
@@ -124,9 +128,9 @@ class PageResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListPages::route('/'),
+            'index' => Pages\ListPages::route('/'),
             'create' => Pages\CreatePage::route('/create'),
-            'edit'   => Pages\EditPage::route('/{record}/edit'),
+            'edit' => Pages\EditPage::route('/{record}/edit'),
         ];
     }
 }

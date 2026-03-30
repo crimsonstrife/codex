@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Mail\WorkspaceInvitationMail;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
+use App\Support\CodexRuntimeConfig;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -31,7 +33,7 @@ class WorkspaceInvitationController extends Controller
 
         $validated = $request->validate([
             'email' => ['nullable', 'email', 'max:255'],
-            'role'  => ['required', Rule::in(['member', 'editor', 'admin'])],
+            'role' => ['required', Rule::in(['member', 'editor', 'admin'])],
         ]);
 
         $email = $validated['email'] ?? null;
@@ -55,14 +57,15 @@ class WorkspaceInvitationController extends Controller
 
         $invitation = WorkspaceInvitation::create([
             'workspace_id' => $workspace->id,
-            'invited_by'   => auth()->id(),
-            'email'        => $email,
-            'role'         => $validated['role'],
-            'expires_at'   => now()->addHours(72),
+            'invited_by' => auth()->id(),
+            'email' => $email,
+            'role' => $validated['role'],
+            'expires_at' => now()->addHours(72),
         ]);
 
         if ($email) {
             Mail::to($email)->queue(new WorkspaceInvitationMail($invitation));
+
             return back()->with('status', 'invitation-sent');
         }
 
@@ -106,6 +109,7 @@ class WorkspaceInvitationController extends Controller
         // If the user is already logged in, join immediately
         if (Auth::check()) {
             $this->joinWorkspace($invitation, Auth::user());
+
             return redirect()->route('workspaces.show', $invitation->workspace)
                 ->with('status', 'invitation-accepted');
         }
@@ -114,7 +118,9 @@ class WorkspaceInvitationController extends Controller
         session(['workspace_invitation_token' => $token]);
 
         return redirect()->route('login')
-            ->with('info', 'Sign in (or create an account) to join ' . $invitation->workspace->name . '.');
+            ->with('info', CodexRuntimeConfig::registrationEnabled()
+                ? 'Sign in (or create an account) to join '.$invitation->workspace->name.'.'
+                : 'Sign in to join '.$invitation->workspace->name.'.');
     }
 
     /**
@@ -136,7 +142,7 @@ class WorkspaceInvitationController extends Controller
      * Add the invited user to the workspace and mark the invitation accepted.
      * Called by accept() when already logged in, and by the Login listener.
      */
-    public static function joinWorkspace(WorkspaceInvitation $invitation, \App\Models\User $user): void
+    public static function joinWorkspace(WorkspaceInvitation $invitation, User $user): void
     {
         if (! $invitation->isPending()) {
             return;

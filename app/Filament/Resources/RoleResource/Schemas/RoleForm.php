@@ -1,0 +1,34 @@
+<?php
+
+namespace App\Filament\Resources\RoleResource\Schemas;
+
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+
+class RoleForm
+{
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make('Role Details')
+                ->schema([
+                    TextInput::make('name')
+                        ->required()
+                        ->maxLength(255),
+                    TextInput::make('guard_name')
+                        ->default('web')
+                        ->required()
+                        ->maxLength(255),
+                    Select::make('permissions')
+                        ->relationship('permissions', 'name')
+                        ->multiple()
+                        ->preload()
+                        ->searchable()
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
+        ]);
+    }
+}

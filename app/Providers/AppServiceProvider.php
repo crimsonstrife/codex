@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Listeners\AcceptPendingWorkspaceInvitations;
 use App\Socialite\ForgeProvider;
+use App\Support\CodexRuntimeConfig;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -24,20 +25,22 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
 
-        // Register the Forge OAuth 2.0 Socialite driver for Forge SSO.
-        // Only registered when FORGE_ENABLED=true; controller also gates usage.
-        if (config('codex.forge.enabled')) {
+        if (CodexRuntimeConfig::forgeSsoAvailable()) {
             Socialite::extend('forge', function () {
                 return Socialite::buildProvider(ForgeProvider::class, [
-                    'client_id'     => config('codex.forge.client_id'),
+                    'client_id' => config('codex.forge.client_id'),
                     'client_secret' => config('codex.forge.client_secret'),
-                    'redirect'      => config('codex.forge.redirect_uri'),
+                    'redirect' => config('codex.forge.redirect_uri'),
+                    'guzzle' => [
+                        'verify' => ! CodexRuntimeConfig::forgeDisableTlsVerification(),
+                    ],
                 ]);
             });
         }
 
         RateLimiter::for('api', static function (Request $request) {
             $key = optional($request->user())?->getAuthIdentifier() ?? $request->ip();
+
             return Limit::perMinute(120)->by($key);
         });
 

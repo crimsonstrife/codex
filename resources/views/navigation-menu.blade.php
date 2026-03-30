@@ -46,11 +46,12 @@
             <div class="d-flex align-items-center gap-2">
                 @auth
                     <!-- Forge cross-app link (shown when Forge SSO/integration is configured) -->
-                    @if(config('codex.forge.enabled') && config('codex.forge.url'))
+                    @if(\App\Support\CodexRuntimeConfig::forgeEnabled() && filled(\App\Support\CodexRuntimeConfig::forgeUrl()))
                         @php
                             $linkedForgeProject = optional(request()->route('workspace'))->forge_project_id;
+                            $forgeUrl = \App\Support\CodexRuntimeConfig::forgeUrl();
                         @endphp
-                        <a href="{{ rtrim(config('codex.forge.url'), '/') }}{{ $linkedForgeProject ? '/projects/' . $linkedForgeProject : '' }}"
+                        <a href="{{ $forgeUrl }}{{ $linkedForgeProject ? '/projects/' . $linkedForgeProject : '' }}"
                            class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
                            target="_blank"
                            rel="noopener"
@@ -170,7 +171,7 @@
                     @if (Route::has('login'))
                         <a class="btn btn-sm btn-outline-secondary" href="{{ route('login') }}">{{ __('Log in') }}</a>
                     @endif
-                    @if (Route::has('register'))
+                    @if (Route::has('register') && \App\Support\CodexRuntimeConfig::registrationEnabled())
                         <a class="btn btn-sm btn-primary" href="{{ route('register') }}">{{ __('Register') }}</a>
                     @endif
                 @endauth

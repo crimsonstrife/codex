@@ -4,20 +4,24 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
+use Filament\Actions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Actions;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-users';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Administration';
+
     protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
@@ -39,8 +43,22 @@ class UserResource extends Resource
             ])->columns(2),
             Section::make('Roles & Permissions')->schema([
                 Select::make('roles')
+                    ->label('Roles')
                     ->multiple()
                     ->relationship('roles', 'name')
+                    ->searchable()
+                    ->preload(),
+                Select::make('permissions')
+                    ->label('Direct Permissions')
+                    ->multiple()
+                    ->relationship('permissions', 'name')
+                    ->searchable()
+                    ->preload(),
+                Select::make('permissionSets')
+                    ->label('Permission Sets')
+                    ->multiple()
+                    ->relationship('permissionSets', 'name')
+                    ->searchable()
                     ->preload(),
             ]),
         ]);
@@ -53,6 +71,7 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('email')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('roles.name')->badge()->label('Roles'),
+                Tables\Columns\TextColumn::make('permissionSets.name')->badge()->label('Permission Sets')->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(),
             ])
             ->filters([])
@@ -75,9 +94,34 @@ class UserResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListUsers::route('/'),
+            'index' => Pages\ListUsers::route('/'),
             'create' => Pages\CreateUser::route('/create'),
-            'edit'   => Pages\EditUser::route('/{record}/edit'),
+            'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->can('users.view') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->can('users.create') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->can('users.update') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->can('users.delete') ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->can('users.delete') ?? false;
     }
 }

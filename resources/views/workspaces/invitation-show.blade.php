@@ -33,7 +33,11 @@
             </form>
 
             <p class="text-body-secondary mb-0" style="font-size:.8rem;">
-                You'll be asked to sign in or create an account.<br>
+                @if (\App\Support\CodexRuntimeConfig::registrationEnabled())
+                    You'll be asked to sign in or create an account.<br>
+                @else
+                    You'll be asked to sign in with an existing account.<br>
+                @endif
                 This invitation expires {{ $invitation->expires_at->diffForHumans() }}.
             </p>
 

@@ -68,7 +68,7 @@
             iframe.style.width = '100%';
             iframe.style.height = '100%';
             iframe.style.border = 'none';
-            iframe.src = `{{ config('codex.diagrams.drawio_url', 'https://embed.diagrams.net') }}?embed=1&spin=1&xml=${encodeURIComponent(xml)}&toolbar=0&lightbox=1`;
+            iframe.src = `{{ $drawioUrl }}?embed=1&spin=1&xml=${encodeURIComponent(xml)}&toolbar=0&lightbox=1`;
             container.appendChild(iframe);
         });
     </script>

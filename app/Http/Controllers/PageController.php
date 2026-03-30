@@ -9,12 +9,22 @@ use App\Models\Page;
 use App\Models\PageLink;
 use App\Models\PageRevision;
 use App\Models\PageTemplate;
+use App\Models\PageView;
+use App\Models\PageWatch;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Services\PageLinkResolver;
+use App\Support\CodexRuntimeConfig;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+use Jfcherng\Diff\Differ;
+use Jfcherng\Diff\Factory\RendererFactory;
 use League\HTMLToMarkdown\HtmlConverter;
 
 class PageController extends Controller
@@ -22,6 +32,7 @@ class PageController extends Controller
     public function create(Workspace $workspace)
     {
         $this->authorize('create', Page::class);
+        $defaultContentType = CodexRuntimeConfig::defaultPageContentType();
         $categories = Category::where('workspace_id', $workspace->id)
             ->orWhereNull('workspace_id')
             ->orderBy('name')
@@ -30,7 +41,8 @@ class PageController extends Controller
         $templates = PageTemplate::where(function ($q) use ($workspace) {
             $q->where('workspace_id', $workspace->id)->orWhereNull('workspace_id');
         })->orderByDesc('is_system')->orderBy('name')->get();
-        return view('pages.create', compact('workspace', 'categories', 'pages', 'templates'));
+
+        return view('pages.create', compact('workspace', 'categories', 'pages', 'templates', 'defaultContentType'));
     }
 
     public function show(Workspace $workspace, Page $page)
@@ -48,10 +60,10 @@ class PageController extends Controller
                 ->whereNull('deleted_at')
                 ->where(function ($q) use ($user) {
                     $q->where('owner_id', $user->id)
-                      ->orWhereHas('members', function ($mq) use ($user) {
-                          $mq->where('user_id', $user->id)
-                             ->whereIn('role', ['editor', 'admin']);
-                      });
+                        ->orWhereHas('members', function ($mq) use ($user) {
+                            $mq->where('user_id', $user->id)
+                                ->whereIn('role', ['editor', 'admin']);
+                        });
                 })
                 ->orderBy('name')
                 ->get(['id', 'name', 'color', 'icon']);
@@ -59,13 +71,13 @@ class PageController extends Controller
 
         // Track recently viewed (upsert so each user has at most one row per page)
         if (auth()->check()) {
-            \App\Models\PageView::upsert(
+            PageView::upsert(
                 [[
-                    'id'           => \Illuminate\Support\Str::uuid()->toString(),
-                    'user_id'      => auth()->id(),
-                    'page_id'      => $page->id,
+                    'id' => Str::uuid()->toString(),
+                    'user_id' => auth()->id(),
+                    'page_id' => $page->id,
                     'workspace_id' => $workspace->id,
-                    'viewed_at'    => now(),
+                    'viewed_at' => now(),
                 ]],
                 ['user_id', 'page_id'],
                 ['viewed_at', 'workspace_id'],
@@ -84,8 +96,8 @@ class PageController extends Controller
         $brokenOutgoingLinks = [];
         if (str_contains($page->content ?? '', '[[')) {
             preg_match_all('/\[\[([^\[\]]+?)]]/u', $page->content ?? '', $wikiMatches);
-            $allRefs             = array_unique($wikiMatches[1] ?? []);
-            $resolvedAnchors     = $page->outgoingLinks()->pluck('anchor_text')->toArray();
+            $allRefs = array_unique($wikiMatches[1] ?? []);
+            $resolvedAnchors = $page->outgoingLinks()->pluck('anchor_text')->toArray();
             $brokenOutgoingLinks = array_values(array_diff($allRefs, $resolvedAnchors));
         }
 
@@ -100,47 +112,48 @@ class PageController extends Controller
         $this->authorize('create', Page::class);
 
         $validated = $request->validate([
-            'title'          => 'required|string|max:255',
-            'content'        => 'nullable|string',
-            'content_type'   => 'in:markdown,richtext',
-            'parent_id'      => [
+            'title' => 'required|string|max:255',
+            'content' => 'nullable|string',
+            'content_type' => 'in:markdown,richtext',
+            'parent_id' => [
                 'nullable',
                 'uuid',
                 Rule::exists('pages', 'id')->where('workspace_id', $workspace->id),
             ],
-            'status'         => 'in:draft,published,archived',
-            'category_ids'   => 'nullable|array',
+            'status' => 'in:draft,published,archived',
+            'category_ids' => 'nullable|array',
             'category_ids.*' => [
                 'uuid',
                 Rule::exists('categories', 'id')->where(function ($q) use ($workspace) {
                     $q->where('workspace_id', $workspace->id)->orWhereNull('workspace_id');
                 }),
             ],
-            'tags'           => 'nullable|string',
+            'tags' => 'nullable|string',
         ]);
 
         $validated['workspace_id'] = $workspace->id;
-        $validated['author_id']    = auth()->id();
+        $validated['author_id'] = auth()->id();
+        $validated['content_type'] ??= CodexRuntimeConfig::defaultPageContentType();
 
         $page = Page::create($validated);
 
-        if (!empty($validated['category_ids'])) {
+        if (! empty($validated['category_ids'])) {
             $page->categories()->sync($validated['category_ids']);
         }
 
-        if (!empty($validated['tags'])) {
+        if (! empty($validated['tags'])) {
             $tagNames = array_filter(array_map('trim', explode(',', $validated['tags'])));
             $page->syncTags($tagNames);
         }
 
         PageRevision::create([
-            'page_id'         => $page->id,
-            'user_id'         => auth()->id(),
-            'title'           => $page->title,
-            'content'         => $page->content,
-            'content_type'    => $page->content_type,
+            'page_id' => $page->id,
+            'user_id' => auth()->id(),
+            'title' => $page->title,
+            'content' => $page->content,
+            'content_type' => $page->content_type,
             'revision_number' => 1,
-            'change_summary'  => 'Initial version',
+            'change_summary' => 'Initial version',
         ]);
 
         app(PageLinkResolver::class)->sync($page);
@@ -149,7 +162,7 @@ class PageController extends Controller
             ->with('status', 'page-created');
     }
 
-    public function duplicate(Workspace $workspace, Page $page): \Illuminate\Http\RedirectResponse
+    public function duplicate(Workspace $workspace, Page $page): RedirectResponse
     {
         abort_if($page->workspace_id !== $workspace->id, 404);
         $this->authorize('duplicate', $page);
@@ -158,26 +171,26 @@ class PageController extends Controller
         $page->load('tags', 'categories');
 
         $copy = Page::create([
-            'title'        => 'Copy of ' . $page->title,
-            'content'      => $page->content,
+            'title' => 'Copy of '.$page->title,
+            'content' => $page->content,
             'content_type' => $page->content_type,
             'workspace_id' => $workspace->id,
-            'author_id'    => auth()->id(),
-            'parent_id'    => $page->parent_id,
-            'status'       => 'draft',
+            'author_id' => auth()->id(),
+            'parent_id' => $page->parent_id,
+            'status' => 'draft',
         ]);
 
         $copy->syncTags($page->tags->pluck('name')->toArray());
         $copy->categories()->sync($page->categories->pluck('id')->toArray());
 
         PageRevision::create([
-            'page_id'         => $copy->id,
-            'user_id'         => auth()->id(),
-            'title'           => $copy->title,
-            'content'         => $copy->content,
-            'content_type'    => $copy->content_type,
+            'page_id' => $copy->id,
+            'user_id' => auth()->id(),
+            'title' => $copy->title,
+            'content' => $copy->content,
+            'content_type' => $copy->content_type,
             'revision_number' => 1,
-            'change_summary'  => 'Duplicated from: ' . $page->title,
+            'change_summary' => 'Duplicated from: '.$page->title,
         ]);
 
         return redirect()->route('workspaces.pages.edit', [$workspace, $copy])
@@ -210,7 +223,7 @@ class PageController extends Controller
     /**
      * Called by the editor JS every 60 seconds to keep the lock alive.
      */
-    public function heartbeat(Workspace $workspace, Page $page): \Illuminate\Http\JsonResponse
+    public function heartbeat(Workspace $workspace, Page $page): JsonResponse
     {
         abort_if($page->workspace_id !== $workspace->id, 404);
         $this->authorize('update', $page);
@@ -220,14 +233,15 @@ class PageController extends Controller
         // Only refresh if the caller owns the lock (or the lock has expired)
         if (! $page->isLockedByAnother(auth()->user())) {
             $page->acquireLock(auth()->user());
+
             return response()->json(['locked' => false]);
         }
 
         // Someone else holds a valid lock
         return response()->json([
-            'locked'   => true,
+            'locked' => true,
             'lockedBy' => $page->lockedBy?->name,
-            'since'    => $page->locked_at?->diffForHumans(),
+            'since' => $page->locked_at?->diffForHumans(),
         ], 409);
     }
 
@@ -235,7 +249,7 @@ class PageController extends Controller
      * DELETE /workspaces/{workspace}/pages/{page}/lock
      * Releases the lock. Authors can release their own; admins/owners can force-unlock.
      */
-    public function unlock(Workspace $workspace, Page $page): \Illuminate\Http\JsonResponse
+    public function unlock(Workspace $workspace, Page $page): JsonResponse
     {
         abort_if($page->workspace_id !== $workspace->id, 404);
 
@@ -245,6 +259,7 @@ class PageController extends Controller
 
         if ($page->locked_by === $user->id || $canForce) {
             $page->releaseLock();
+
             return response()->json(['ok' => true]);
         }
 
@@ -256,19 +271,19 @@ class PageController extends Controller
         $this->authorize('update', $page);
 
         $validated = $request->validate([
-            'title'          => 'required|string|max:255',
-            'content'        => 'nullable|string',
+            'title' => 'required|string|max:255',
+            'content' => 'nullable|string',
             // content_type is intentionally excluded from update; it is immutable after creation
-            'status'         => 'in:draft,published,archived',
+            'status' => 'in:draft,published,archived',
             'change_summary' => 'nullable|string|max:255',
-            'category_ids'   => 'nullable|array',
+            'category_ids' => 'nullable|array',
             'category_ids.*' => [
                 'uuid',
                 Rule::exists('categories', 'id')->where(function ($q) use ($workspace) {
                     $q->where('workspace_id', $workspace->id)->orWhereNull('workspace_id');
                 }),
             ],
-            'tags'           => 'nullable|string',
+            'tags' => 'nullable|string',
         ]);
 
         $lastRevision = $page->revisions()->latest()->first();
@@ -279,43 +294,43 @@ class PageController extends Controller
         $page->categories()->sync($validated['category_ids'] ?? []);
 
         $tagNames = [];
-        if (!empty($validated['tags'])) {
+        if (! empty($validated['tags'])) {
             $tagNames = array_filter(array_map('trim', explode(',', $validated['tags'])));
         }
         $page->syncTags($tagNames);
 
         PageRevision::create([
-            'page_id'         => $page->id,
-            'user_id'         => auth()->id(),
-            'title'           => $page->title,
-            'content'         => $page->content,
-            'content_type'    => $page->content_type,
+            'page_id' => $page->id,
+            'user_id' => auth()->id(),
+            'title' => $page->title,
+            'content' => $page->content,
+            'content_type' => $page->content_type,
             'revision_number' => $revNum,
-            'change_summary'  => $validated['change_summary'] ?? null,
+            'change_summary' => $validated['change_summary'] ?? null,
         ]);
 
         // Notify watchers (excluding the editor themselves)
-        $watchers = \App\Models\PageWatch::where('page_id', $page->id)
+        $watchers = PageWatch::where('page_id', $page->id)
             ->where('user_id', '!=', auth()->id())
             ->pluck('user_id');
 
         if ($watchers->isNotEmpty()) {
-            $editor  = auth()->user()->name;
+            $editor = auth()->user()->name;
             $message = "{$editor} updated \"{$page->title}\"";
             $inserts = $watchers->map(fn ($uid) => [
-                'id'         => \Illuminate\Support\Str::uuid()->toString(),
-                'user_id'    => $uid,
-                'type'       => 'page_updated',
-                'page_id'    => $page->id,
-                'message'    => $message,
-                'read_at'    => null,
+                'id' => Str::uuid()->toString(),
+                'user_id' => $uid,
+                'type' => 'page_updated',
+                'page_id' => $page->id,
+                'message' => $message,
+                'read_at' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ])->values()->all();
 
             CodexNotification::insert($inserts);
 
-            $emailRecipients = \App\Models\User::whereIn('id', $watchers->toArray())
+            $emailRecipients = User::whereIn('id', $watchers->toArray())
                 ->where('email_notifications', true)
                 ->get();
 
@@ -331,15 +346,15 @@ class PageController extends Controller
                 array_filter($mentionMatches[1] ?? [], fn ($id) => $id !== auth()->id())
             ));
             if (! empty($mentionedIds)) {
-                $editor  = auth()->user()->name;
+                $editor = auth()->user()->name;
                 $message = "{$editor} mentioned you in \"{$page->title}\"";
                 $inserts = array_map(fn ($uid) => [
-                    'id'         => \Illuminate\Support\Str::uuid()->toString(),
-                    'user_id'    => $uid,
-                    'type'       => 'page_mentioned',
-                    'page_id'    => $page->id,
-                    'message'    => $message,
-                    'read_at'    => null,
+                    'id' => Str::uuid()->toString(),
+                    'user_id' => $uid,
+                    'type' => 'page_mentioned',
+                    'page_id' => $page->id,
+                    'message' => $message,
+                    'read_at' => null,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ], $mentionedIds);
@@ -353,7 +368,7 @@ class PageController extends Controller
             ->with('status', 'page-updated');
     }
 
-    public function updateStatus(Request $request, Workspace $workspace, Page $page): \Illuminate\Http\RedirectResponse
+    public function updateStatus(Request $request, Workspace $workspace, Page $page): RedirectResponse
     {
         abort_if($page->workspace_id !== $workspace->id, 404);
         $this->authorize('update', $page);
@@ -393,30 +408,30 @@ class PageController extends Controller
         return view('pages.revision', compact('workspace', 'page', 'revision', 'breadcrumbs'));
     }
 
-    public function restoreRevision(Workspace $workspace, Page $page, PageRevision $revision): \Illuminate\Http\RedirectResponse
+    public function restoreRevision(Workspace $workspace, Page $page, PageRevision $revision): RedirectResponse
     {
         abort_if($page->workspace_id !== $workspace->id, 404);
         abort_if($revision->page_id !== $page->id, 404);
         $this->authorize('update', $page);
 
         $lastRevision = $page->revisions()->latest()->first();
-        $nextNumber   = $lastRevision ? $lastRevision->revision_number + 1 : 1;
+        $nextNumber = $lastRevision ? $lastRevision->revision_number + 1 : 1;
 
         // Apply the old revision's content to the page
         $page->update([
-            'title'   => $revision->title,
+            'title' => $revision->title,
             'content' => $revision->content,
         ]);
 
         // Record a new revision so the restore itself is auditable
         PageRevision::create([
-            'page_id'         => $page->id,
-            'user_id'         => auth()->id(),
-            'title'           => $revision->title,
-            'content'         => $revision->content,
-            'content_type'    => $revision->content_type,
+            'page_id' => $page->id,
+            'user_id' => auth()->id(),
+            'title' => $revision->title,
+            'content' => $revision->content,
+            'content_type' => $revision->content_type,
             'revision_number' => $nextNumber,
-            'change_summary'  => 'Restored from v' . $revision->revision_number,
+            'change_summary' => 'Restored from v'.$revision->revision_number,
         ]);
 
         app(PageLinkResolver::class)->sync($page);
@@ -426,14 +441,14 @@ class PageController extends Controller
             ->with('status', 'page-restored');
     }
 
-    public function diffRevisions(Request $request, Workspace $workspace, Page $page): \Illuminate\View\View
+    public function diffRevisions(Request $request, Workspace $workspace, Page $page): View
     {
         abort_if($page->workspace_id !== $workspace->id, 404);
         $this->authorize('view', $page);
 
         $request->validate([
-            'from' => ['required', 'uuid', \Illuminate\Validation\Rule::exists('page_revisions', 'id')->where('page_id', $page->id)],
-            'to'   => ['nullable', 'uuid', \Illuminate\Validation\Rule::exists('page_revisions', 'id')->where('page_id', $page->id)],
+            'from' => ['required', 'uuid', Rule::exists('page_revisions', 'id')->where('page_id', $page->id)],
+            'to' => ['nullable', 'uuid', Rule::exists('page_revisions', 'id')->where('page_id', $page->id)],
         ]);
 
         $fromRevision = $page->revisions()->with('user')->findOrFail($request->input('from'));
@@ -443,14 +458,14 @@ class PageController extends Controller
         } else {
             // Synthetic "current" revision
             $toRevision = (object) [
-                'id'              => null,
-                'title'           => $page->title,
-                'content'         => $page->content,
-                'content_type'    => $page->content_type,
+                'id' => null,
+                'title' => $page->title,
+                'content' => $page->content,
+                'content_type' => $page->content_type,
                 'revision_number' => 'Current',
-                'created_at'      => $page->updated_at,
-                'change_summary'  => 'Current version',
-                'user'            => $page->author,
+                'created_at' => $page->updated_at,
+                'change_summary' => 'Current version',
+                'user' => $page->author,
             ];
         }
 
@@ -459,6 +474,7 @@ class PageController extends Controller
             if ($contentType === 'richtext') {
                 $content = html_entity_decode(strip_tags($content), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             }
+
             // Split into non-empty lines for better diff granularity
             return $content;
         };
@@ -470,19 +486,19 @@ class PageController extends Controller
         $newLines = explode("\n", $newText);
 
         $differOptions = [
-            'context'          => 3,
-            'ignoreCase'       => false,
+            'context' => 3,
+            'ignoreCase' => false,
             'ignoreWhitespace' => false,
         ];
 
         $rendererOptions = [
             'detailLevel' => 'word',
             'lineNumbers' => false,
-            'showHeader'  => false,
+            'showHeader' => false,
         ];
 
-        $differ  = new \Jfcherng\Diff\Differ($oldLines, $newLines, $differOptions);
-        $renderer = \Jfcherng\Diff\Factory\RendererFactory::make('Inline', $rendererOptions);
+        $differ = new Differ($oldLines, $newLines, $differOptions);
+        $renderer = RendererFactory::make('Inline', $rendererOptions);
         $diffHtml = $renderer->render($differ);
 
         $breadcrumbs = $page->ancestors()->get()->push($page);
@@ -493,7 +509,7 @@ class PageController extends Controller
         ));
     }
 
-    public function destroy(Workspace $workspace, Page $page): \Illuminate\Http\RedirectResponse
+    public function destroy(Workspace $workspace, Page $page): RedirectResponse
     {
         abort_if($page->workspace_id !== $workspace->id, 404);
         $this->authorize('delete', $page);
@@ -515,7 +531,7 @@ class PageController extends Controller
      * Renders a minimal, print-ready view of the page (no nav chrome).
      * Works in any browser — user can File → Print / Save as PDF.
      */
-    public function print(Workspace $workspace, Page $page): \Illuminate\View\View
+    public function print(Workspace $workspace, Page $page): View
     {
         abort_if($page->workspace_id !== $workspace->id, 404);
         $this->authorize('view', $page);
@@ -537,12 +553,12 @@ class PageController extends Controller
 
         if ($page->content_type === 'richtext') {
             $converter = new HtmlConverter([
-                'strip_tags'         => false,
-                'header_style'       => 'atx',   // # headings
-                'bold_style'         => '**',
-                'italic_style'       => '_',
-                'list_item_style'    => '-',
-                'hard_break'         => true,
+                'strip_tags' => false,
+                'header_style' => 'atx',   // # headings
+                'bold_style' => '**',
+                'italic_style' => '_',
+                'list_item_style' => '-',
+                'hard_break' => true,
             ]);
             $markdown = $converter->convert($page->content ?? '');
         } else {
@@ -560,21 +576,21 @@ class PageController extends Controller
 
         $frontMatter = implode("\n", [
             '---',
-            'title: "' . $yamlEscape($page->title) . '"',
-            'workspace: "' . $yamlEscape($workspace->name) . '"',
-            'status: ' . $page->status,
-            'author: "' . $yamlEscape($page->author?->name ?? '') . '"',
-            'exported_at: ' . now()->toIso8601String(),
+            'title: "'.$yamlEscape($page->title).'"',
+            'workspace: "'.$yamlEscape($workspace->name).'"',
+            'status: '.$page->status,
+            'author: "'.$yamlEscape($page->author?->name ?? '').'"',
+            'exported_at: '.now()->toIso8601String(),
             '---',
             '',
         ]);
 
-        $slug     = \Illuminate\Support\Str::slug($page->title);
-        $filename = ($slug !== '' ? $slug : $page->id) . '.md';
+        $slug = Str::slug($page->title);
+        $filename = ($slug !== '' ? $slug : $page->id).'.md';
 
-        return response($frontMatter . $markdown, 200, [
-            'Content-Type'        => 'text/markdown; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        return response($frontMatter.$markdown, 200, [
+            'Content-Type' => 'text/markdown; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -582,7 +598,7 @@ class PageController extends Controller
      *   parent_id — UUID of new parent, or null for root level
      *   before_id — UUID of the sibling to insert before, or null to append
      */
-    public function move(Request $request, Workspace $workspace, Page $page): \Illuminate\Http\JsonResponse
+    public function move(Request $request, Workspace $workspace, Page $page): JsonResponse
     {
         abort_if($page->workspace_id !== $workspace->id, 404);
         $this->authorize('update', $page);
@@ -643,7 +659,7 @@ class PageController extends Controller
      *   - have update permission on the source page
      *   - be owner OR editor/admin member in the target workspace
      */
-    public function transfer(Request $request, Workspace $workspace, Page $page): \Illuminate\Http\RedirectResponse
+    public function transfer(Request $request, Workspace $workspace, Page $page): RedirectResponse
     {
         abort_if($page->workspace_id !== $workspace->id, 404);
         $this->authorize('update', $page);
@@ -651,9 +667,9 @@ class PageController extends Controller
         $validated = $request->validate([
             'target_workspace_id' => [
                 'required', 'uuid',
-                \Illuminate\Validation\Rule::exists('workspaces', 'id')
+                Rule::exists('workspaces', 'id')
                     ->whereNull('deleted_at'),
-                \Illuminate\Validation\Rule::notIn([$workspace->id]),
+                Rule::notIn([$workspace->id]),
             ],
             'target_parent_id' => ['nullable', 'uuid'],
         ]);
@@ -687,7 +703,7 @@ class PageController extends Controller
 
         // Reassign workspace for the page and all its descendants
         $page->workspace_id = $targetWorkspace->id;
-        $page->parent_id    = $targetParent?->id;
+        $page->parent_id = $targetParent?->id;
         $page->save();
 
         if (! empty($descendantIds)) {
@@ -704,4 +720,3 @@ class PageController extends Controller
             ->with('status', 'page-transferred');
     }
 }
-

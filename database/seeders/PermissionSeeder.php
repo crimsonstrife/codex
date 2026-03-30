@@ -27,6 +27,8 @@ class PermissionSeeder extends Seeder
         'jetstream.access',
         'settings.manage',
         'settings.view',
+        'health.view',
+        'logs.manage',
         'workspaces.transition',
         'pages.publish',
         'diagrams.publish',

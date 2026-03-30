@@ -23,7 +23,7 @@
                         <a href="{{ url('/dashboard') }}" class="btn btn-sm btn-outline-secondary">Dashboard</a>
                     @else
                         <a href="{{ route('login') }}" class="btn btn-sm btn-outline-secondary">Log in</a>
-                        @if (Route::has('register'))
+                        @if (Route::has('register') && \App\Support\CodexRuntimeConfig::registrationEnabled())
                             <a href="{{ route('register') }}" class="btn btn-sm btn-primary">Register</a>
                         @endif
                     @endauth
@@ -48,7 +48,7 @@
                             </a>
                         @else
                             <a href="{{ route('login') }}" class="btn btn-outline-primary">Log in</a>
-                            @if (Route::has('register'))
+                            @if (Route::has('register') && \App\Support\CodexRuntimeConfig::registrationEnabled())
                                 <a href="{{ route('register') }}" class="btn btn-primary">Get Started</a>
                             @endif
                         @endauth

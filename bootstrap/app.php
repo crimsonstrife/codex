@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\AuthenticateAppToken;
+use App\Http\Middleware\EnsureRegistrationIsEnabled;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,7 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'auth.app_token' => \App\Http\Middleware\AuthenticateAppToken::class,
+            'auth.app_token' => AuthenticateAppToken::class,
+            'auth.registration' => EnsureRegistrationIsEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

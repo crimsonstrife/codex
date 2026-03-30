@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Settings\AuthSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Fortify\Features;
 use Laravel\Jetstream\Jetstream;
 use Tests\TestCase;
 
@@ -13,9 +13,7 @@ class RegistrationTest extends TestCase
 
     public function test_registration_screen_can_be_rendered(): void
     {
-        if (! Features::enabled(Features::registration())) {
-            $this->markTestSkipped('Registration support is not enabled.');
-        }
+        AuthSettings::fake(['allowRegistration' => true]);
 
         $response = $this->get('/register');
 
@@ -24,9 +22,7 @@ class RegistrationTest extends TestCase
 
     public function test_registration_screen_cannot_be_rendered_if_support_is_disabled(): void
     {
-        if (Features::enabled(Features::registration())) {
-            $this->markTestSkipped('Registration support is enabled.');
-        }
+        AuthSettings::fake(['allowRegistration' => false]);
 
         $response = $this->get('/register');
 
@@ -35,9 +31,7 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
-        if (! Features::enabled(Features::registration())) {
-            $this->markTestSkipped('Registration support is not enabled.');
-        }
+        AuthSettings::fake(['allowRegistration' => true]);
 
         $response = $this->post('/register', [
             'name' => 'Test User',
@@ -49,5 +43,21 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_new_users_cannot_register_when_registration_is_disabled(): void
+    {
+        AuthSettings::fake(['allowRegistration' => false]);
+
+        $response = $this->post('/register', [
+            'name' => 'Blocked User',
+            'email' => 'blocked@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'terms' => Jetstream::hasTermsAndPrivacyPolicyFeature(),
+        ]);
+
+        $response->assertNotFound();
+        $this->assertGuest();
     }
 }

@@ -4,15 +4,16 @@ use App\Http\Controllers\Api\MentionController;
 use App\Http\Controllers\Api\PageLinkController;
 use App\Http\Controllers\Auth\ForgeSsoController;
 use App\Http\Controllers\DiagramController;
+use App\Http\Controllers\HealthCheckResultsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageAttachmentController;
 use App\Http\Controllers\PageCommentController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PagePinController;
-use App\Http\Controllers\PageTemplateController;
-use App\Http\Controllers\ProfilePreferencesController;
 use App\Http\Controllers\PageStarController;
+use App\Http\Controllers\PageTemplateController;
 use App\Http\Controllers\PageWatchController;
+use App\Http\Controllers\ProfilePreferencesController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\WorkspaceAnalyticsController;
@@ -21,12 +22,15 @@ use App\Http\Controllers\WorkspaceExportController;
 use App\Http\Controllers\WorkspaceGraphController;
 use App\Http\Controllers\WorkspaceInvitationController;
 use App\Http\Controllers\WorkspaceMemberController;
+use App\Models\PageView;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/status', HealthCheckResultsController::class)->name('status');
 
 Route::middleware([
     'auth:sanctum',
@@ -41,7 +45,7 @@ Route::middleware([
             ->merge(auth()->user()->ownedWorkspaces()->orderBy('name')->take(8)->get())
             ->unique('id')->sortBy('name');
 
-        $recentlyViewed = \App\Models\PageView::with(['page.workspace'])
+        $recentlyViewed = PageView::with(['page.workspace'])
             ->where('user_id', auth()->id())
             ->whereHas('page', fn ($q) => $q->whereNull('deleted_at'))
             ->orderByDesc('viewed_at')
@@ -169,4 +173,3 @@ Route::prefix('auth/forge')->name('forge.')->group(function () {
     Route::get('/redirect', [ForgeSsoController::class, 'redirect'])->name('redirect');
     Route::get('/callback', [ForgeSsoController::class, 'callback'])->name('callback');
 });
-
