@@ -34,7 +34,7 @@
          *
          * @var array<int, string>
          */
-        protected $scopes = ['profile', 'email'];
+        protected $scopes = ['profile'];
 
         /**
          * Delimiter used when serializing scope values in the auth URL.
