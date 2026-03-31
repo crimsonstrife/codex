@@ -2,13 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Traits\HasPermissionSets;
-use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
-use App\Models\CodexNotification;
-use App\Models\PageWatch;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -27,8 +24,8 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 {
     use HasApiTokens;
     use HasFactory;
-    use HasPermissionSets;
     use HasPermissions;
+    use HasPermissionSets;
     use HasProfilePhoto;
     use HasRoles;
     use HasTeams;
@@ -37,6 +34,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     use TwoFactorAuthenticatable;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -61,9 +59,9 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     protected function casts(): array
     {
         return [
-            'email_verified_at'   => 'datetime',
-            'password'            => 'hashed',
-            'id'                  => 'string',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'id' => 'string',
             'email_notifications' => 'boolean',
         ];
     }
@@ -86,6 +84,11 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     public function pages(): HasMany
     {
         return $this->hasMany(Page::class, 'author_id');
+    }
+
+    public function scriptProjects(): HasMany
+    {
+        return $this->hasMany(ScriptProject::class, 'author_id');
     }
 
     public function starredPages(): BelongsToMany

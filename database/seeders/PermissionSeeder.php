@@ -37,6 +37,7 @@ class PermissionSeeder extends Seeder
     private array $domains = [
         'workspaces',
         'pages',
+        'scripts',
         'diagrams',
         'users',
         'roles',

@@ -1,4 +1,5 @@
 import './bootstrap';
+import './script-editor';
 import './toc';
 import './workspace-view-toggle';
 import { initPageTreeSort, initPageTreeCollapse } from './page-tree-sort';

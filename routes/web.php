@@ -16,6 +16,9 @@ use App\Http\Controllers\PageTemplateController;
 use App\Http\Controllers\PageWatchController;
 use App\Http\Controllers\ProfilePreferencesController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\ScriptEntityController;
+use App\Http\Controllers\ScriptProjectController;
+use App\Http\Controllers\ScriptProjectPageController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\WorkspaceAnalyticsController;
 use App\Http\Controllers\WorkspaceController;
@@ -140,6 +143,25 @@ Route::middleware([
         // Tags (feat 4.2)
         Route::get('/tags', [TagController::class, 'index'])->name('tags.index');
         Route::get('/tags/{tagSlug}', [TagController::class, 'show'])->name('tags.show');
+
+        // Scripts
+        Route::get('/scripts/create', [ScriptProjectController::class, 'create'])->name('scripts.create');
+        Route::post('/scripts', [ScriptProjectController::class, 'store'])->name('scripts.store');
+        Route::get('/scripts/{script}', [ScriptProjectController::class, 'show'])->name('scripts.show');
+        Route::get('/scripts/{script}/edit', [ScriptProjectController::class, 'edit'])->name('scripts.edit');
+        Route::put('/scripts/{script}', [ScriptProjectController::class, 'update'])->name('scripts.update');
+        Route::delete('/scripts/{script}', [ScriptProjectController::class, 'destroy'])->name('scripts.destroy');
+        Route::get('/scripts/{script}/history', [ScriptProjectController::class, 'history'])->name('scripts.history');
+        Route::get('/scripts/{script}/history/{revision}', [ScriptProjectController::class, 'showRevision'])->name('scripts.revisions.show');
+        Route::get('/scripts/{script}/print', [ScriptProjectController::class, 'print'])->name('scripts.print');
+        Route::get('/scripts/{script}/export/fountain', [ScriptProjectController::class, 'exportFountain'])->name('scripts.export.fountain');
+        Route::post('/scripts/{script}/entities', [ScriptEntityController::class, 'store'])->name('scripts.entities.store');
+        Route::patch('/scripts/{script}/entities/{entity}', [ScriptEntityController::class, 'update'])->name('scripts.entities.update');
+        Route::delete('/scripts/{script}/entities/{entity}', [ScriptEntityController::class, 'destroy'])->name('scripts.entities.destroy');
+        Route::post('/scripts/{script}/binder-pages', [ScriptProjectPageController::class, 'store'])->name('scripts.binder-pages.store');
+        Route::post('/scripts/{script}/binder-pages/create', [ScriptProjectPageController::class, 'storeFromTemplate'])->name('scripts.binder-pages.create');
+        Route::patch('/scripts/{script}/binder-pages/{binderLink}', [ScriptProjectPageController::class, 'update'])->name('scripts.binder-pages.update');
+        Route::delete('/scripts/{script}/binder-pages/{binderLink}', [ScriptProjectPageController::class, 'destroy'])->name('scripts.binder-pages.destroy');
 
         // Diagrams
         Route::get('/diagrams', fn (Workspace $workspace) => redirect()->route('workspaces.show', $workspace))->name('diagrams.index');

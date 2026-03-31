@@ -384,6 +384,46 @@
                     </div>
                     @endif
 
+                    @if($linkedScripts->isNotEmpty())
+                    <div class="card shadow-sm mt-4">
+                        <div class="card-header py-2 d-flex align-items-center justify-content-between">
+                            <span class="small fw-semibold text-uppercase text-body-secondary">
+                                <i class="fas fa-scroll me-1"></i> Script Projects
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis fw-normal ms-1">
+                                    {{ $linkedScripts->count() }}
+                                </span>
+                            </span>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-3">
+                                @foreach($linkedScripts as $link)
+                                    @if($link->scriptProject)
+                                    <div class="col-md-6">
+                                        <a href="{{ route('workspaces.scripts.show', [$workspace, $link->scriptProject]) }}"
+                                           class="card card-hover text-decoration-none border h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center justify-content-between gap-2">
+                                                    <h3 class="h6 mb-1">{{ $link->scriptProject->title }}</h3>
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis">
+                                                        {{ ucfirst(str_replace('_', ' ', $link->role)) }}
+                                                    </span>
+                                                </div>
+                                                @if($link->scriptProject->logline)
+                                                    <p class="small text-body-secondary mb-2">{{ $link->scriptProject->logline }}</p>
+                                                @endif
+                                                <div class="small text-body-secondary">
+                                                    {{ ucfirst($link->scriptProject->status) }} • {{ $link->scriptProject->updated_at->diffForHumans() }}
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     {{-- ── feat 3.1: Comments ──────────────────────────────────── --}}
                     <div class="card shadow-sm mt-4" id="comments">
                         <div class="card-header p-4 d-flex align-items-center justify-content-between">
