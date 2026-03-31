@@ -156,7 +156,11 @@
                 return;
             }
             try {
-                const { svg } = await window.mermaid.render('preview-graph', source);
+                const mermaid = await window.loadMermaid?.();
+                if (!mermaid) {
+                    throw new Error('Mermaid preview is unavailable right now.');
+                }
+                const { svg } = await mermaid.render('preview-graph', source);
                 container.innerHTML = svg;
             } catch (e) {
                 container.innerHTML = `<pre class="text-danger small text-start">${e.message}</pre>`;

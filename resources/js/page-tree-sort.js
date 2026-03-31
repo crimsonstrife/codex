@@ -71,11 +71,21 @@ export function initPageTreeCollapse() {
  * header while the request is in flight.
  */
 
-import Sortable from 'sortablejs';
+let sortablePromise;
 
-export function initPageTreeSort() {
+function loadSortable() {
+    if (!sortablePromise) {
+        sortablePromise = import('sortablejs').then((module) => module.default);
+    }
+
+    return sortablePromise;
+}
+
+export async function initPageTreeSort() {
     const levels = document.querySelectorAll('.sortable-level');
     if (!levels.length) return;
+
+    const Sortable = await loadSortable();
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
     const indicator = document.getElementById('page-sort-indicator');
