@@ -1,11 +1,15 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('workspaces.diagrams.show', [$workspace, $diagram]) }}"
-               class="small text-primary text-decoration-none">
-                <i class="fas fa-arrow-left me-1"></i> View
-            </a>
-            <h2 class="h5 mb-0">Edit: {{ $diagram->title }}</h2>
+        <div class="d-flex flex-column gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ route('workspaces.diagrams.show', [$workspace, $diagram]) }}"
+                   class="small text-primary text-decoration-none">
+                    <i class="fas fa-arrow-left me-1"></i> View
+                </a>
+                <h2 class="h5 mb-0">Edit: {{ $diagram->title }}</h2>
+            </div>
+
+            @include('workspaces._header_actions')
         </div>
     </x-slot>
 

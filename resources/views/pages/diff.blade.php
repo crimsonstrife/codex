@@ -1,21 +1,25 @@
 <x-app-layout>
     <x-slot name="header">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item">
-                    <a href="{{ route('workspaces.show', $workspace) }}">{{ $workspace->name }}</a>
-                </li>
-                @foreach($breadcrumbs as $crumb)
+        <div class="d-flex flex-column gap-3">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item">
-                        <a href="{{ route('workspaces.pages.show', [$workspace, $crumb]) }}">{{ $crumb->title }}</a>
+                        <a href="{{ route('workspaces.show', $workspace) }}">{{ $workspace->name }}</a>
                     </li>
-                @endforeach
-                <li class="breadcrumb-item">
-                    <a href="{{ route('workspaces.pages.history', [$workspace, $page]) }}">History</a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">Compare</li>
-            </ol>
-        </nav>
+                    @foreach($breadcrumbs as $crumb)
+                        <li class="breadcrumb-item">
+                            <a href="{{ route('workspaces.pages.show', [$workspace, $crumb]) }}">{{ $crumb->title }}</a>
+                        </li>
+                    @endforeach
+                    <li class="breadcrumb-item">
+                        <a href="{{ route('workspaces.pages.history', [$workspace, $page]) }}">History</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Compare</li>
+                </ol>
+            </nav>
+
+            @include('workspaces._header_actions')
+        </div>
     </x-slot>
 
     <div class="py-4">

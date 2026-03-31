@@ -1,8 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="h5 mb-0">
-            New Diagram in <span class="text-primary">{{ $workspace->name }}</span>
-        </h2>
+        <div class="d-flex flex-column gap-3">
+            <h2 class="h5 mb-0">
+                New Diagram in <span class="text-primary">{{ $workspace->name }}</span>
+            </h2>
+
+            @include('workspaces._header_actions')
+        </div>
     </x-slot>
 
     <div class="py-4">

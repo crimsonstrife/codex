@@ -1,16 +1,20 @@
 <x-app-layout>
     <x-slot name="header">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item">
-                    <a href="{{ route('workspaces.show', $workspace) }}">{{ $workspace->name }}</a>
-                </li>
-                <li class="breadcrumb-item">
-                    <a href="{{ route('workspaces.scripts.show', [$workspace, $script]) }}">{{ $script->title }}</a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">Revision v{{ $revision->revision_number }}</li>
-            </ol>
-        </nav>
+        <div class="d-flex flex-column gap-3">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="{{ route('workspaces.show', $workspace) }}">{{ $workspace->name }}</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{{ route('workspaces.scripts.show', [$workspace, $script]) }}">{{ $script->title }}</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Revision v{{ $revision->revision_number }}</li>
+                </ol>
+            </nav>
+
+            @include('workspaces._header_actions')
+        </div>
     </x-slot>
 
     <style>
