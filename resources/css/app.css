@@ -61,6 +61,63 @@
     opacity: 0.7;
 }
 
+/* ── Diagram embeds ──────────────────────────────────────────────────────── */
+.codex-diagram-embed {
+    border: 1px solid rgba(108, 117, 125, 0.18);
+    border-radius: 0.9rem;
+    overflow: hidden;
+    background: #fff;
+}
+.codex-diagram-embed--missing {
+    border-color: rgba(220, 53, 69, 0.35);
+}
+.codex-diagram-embed__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid rgba(108, 117, 125, 0.12);
+}
+.codex-diagram-embed__eyebrow {
+    color: #6c757d;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+.codex-diagram-embed__title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0;
+}
+.codex-diagram-embed__description {
+    color: #6c757d;
+    margin: 0.35rem 0 0;
+    font-size: 0.92rem;
+}
+.codex-diagram-embed__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.codex-diagram-embed__surface {
+    min-height: 15rem;
+}
+.codex-diagram-surface {
+    padding: 1rem 1.1rem;
+    background: linear-gradient(180deg, rgba(248, 249, 250, 0.96), rgba(255, 255, 255, 0.98));
+}
+.codex-diagram-surface iframe {
+    min-height: 24rem;
+}
+.codex-diagram-surface--static,
+.codex-diagram-surface--empty {
+    color: #495057;
+}
+
 /* ── Workspace table/tree view toggle ────────────────────────────────────── */
 /* Hides the ToC column when the page-table view is active */
 .view-force-hidden {

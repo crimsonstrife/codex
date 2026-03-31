@@ -82,15 +82,10 @@
                 </div>
 
                 <div class="card-body p-4">
-                    @if($revision->content_type === 'markdown')
-                        <div class="prose dark:prose-invert max-w-none">
-                            {!! app(\Spatie\LaravelMarkdown\MarkdownRenderer::class)->toHtml($revision->content ?? '') !!}
-                        </div>
-                    @else
-                        <div class="prose dark:prose-invert max-w-none">
-                            {!! $revision->content !!}
-                        </div>
-                    @endif
+                    @php $pageContentRenderer = app(\App\Services\PageContentRenderer::class); @endphp
+                    <div class="prose dark:prose-invert max-w-none">
+                        {!! $pageContentRenderer->render($revision->content, $revision->content_type, $workspace) !!}
+                    </div>
                 </div>
             </div>
         </div>

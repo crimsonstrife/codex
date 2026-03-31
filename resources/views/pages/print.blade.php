@@ -119,6 +119,42 @@
 
         .print-content img { max-width: 100%; height: auto; }
 
+        .print-content .codex-diagram-embed {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin: 1.25rem 0;
+            overflow: hidden;
+            break-inside: avoid;
+        }
+        .print-content .codex-diagram-embed__header {
+            border-bottom: 1px solid #ddd;
+            padding: 0.75rem 1rem;
+        }
+        .print-content .codex-diagram-embed__eyebrow {
+            font-size: 8pt;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.2rem;
+        }
+        .print-content .codex-diagram-embed__title {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12pt;
+            font-weight: bold;
+        }
+        .print-content .codex-diagram-embed__description {
+            color: #555;
+            font-size: 9pt;
+            margin-top: 0.35rem;
+            margin-bottom: 0;
+        }
+        .print-content .codex-diagram-embed__actions { display: none; }
+        .print-content .codex-diagram-surface {
+            padding: 0.9rem 1rem;
+            background: #fafafa;
+            color: #444;
+        }
+
         .print-content a { color: #111; text-decoration: underline; }
         .print-content a[href]::after {
             content: ' (' attr(href) ')';
@@ -175,6 +211,7 @@
     </style>
 </head>
 <body>
+    @php $pageContentRenderer = app(\App\Services\PageContentRenderer::class); @endphp
 
     {{-- Screen-only controls --}}
     <div class="print-controls">
@@ -211,7 +248,7 @@
 
     {{-- Page content --}}
     <main class="print-content">
-        {!! $page->content !!}
+        {!! $pageContentRenderer->render($page->content, $page->content_type, $workspace, 'print') !!}
     </main>
 
     {{-- Footer --}}

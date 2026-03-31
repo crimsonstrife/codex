@@ -320,7 +320,7 @@
 
                     {{-- ── Home page embedded content ───────────────────────── --}}
                     @if($homePage)
-                        @php $linkResolver = app(\App\Services\PageLinkResolver::class); @endphp
+                        @php $pageContentRenderer = app(\App\Services\PageContentRenderer::class); @endphp
 
                         {{-- Home page card --}}
                         <div class="card shadow-sm mb-4">
@@ -375,18 +375,9 @@
 
                             {{-- Page content — id="page-content" wires the ToC JS --}}
                             <div class="card-body p-4" id="page-content">
-                                @if($homePage->content_type === 'markdown')
-                                    <div class="prose dark:prose-invert max-w-none">
-                                        {!! $linkResolver->render(
-                                                app(\Spatie\LaravelMarkdown\MarkdownRenderer::class)->toHtml($homePage->content ?? ''),
-                                                $workspace
-                                            ) !!}
-                                    </div>
-                                @else
-                                    <div class="prose dark:prose-invert max-w-none">
-                                        {!! $linkResolver->render($homePage->content ?? '', $workspace) !!}
-                                    </div>
-                                @endif
+                                <div class="prose dark:prose-invert max-w-none">
+                                    {!! $pageContentRenderer->render($homePage->content, $homePage->content_type, $workspace) !!}
+                                </div>
                             </div>
 
                             @if($homePagePrevious || $homePageNext)
