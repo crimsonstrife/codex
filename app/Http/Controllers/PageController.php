@@ -13,6 +13,7 @@ use App\Models\PageView;
 use App\Models\PageWatch;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\DiagramEmbedRenderer;
 use App\Services\PageLinkResolver;
 use App\Support\CodexRuntimeConfig;
 use App\Support\PageNavigationResolver;
@@ -166,6 +167,7 @@ class PageController extends Controller
         ]);
 
         app(PageLinkResolver::class)->sync($page);
+        app(DiagramEmbedRenderer::class)->sync($page);
 
         return redirect()->route('workspaces.pages.edit', [$workspace, $page])
             ->with('status', 'page-created');
@@ -201,6 +203,8 @@ class PageController extends Controller
             'revision_number' => 1,
             'change_summary' => 'Duplicated from: '.$page->title,
         ]);
+
+        app(DiagramEmbedRenderer::class)->sync($copy);
 
         return redirect()->route('workspaces.pages.edit', [$workspace, $copy])
             ->with('status', 'page-created');
@@ -372,6 +376,7 @@ class PageController extends Controller
         }
 
         app(PageLinkResolver::class)->sync($page);
+        app(DiagramEmbedRenderer::class)->sync($page);
 
         return redirect()->route('workspaces.pages.show', [$workspace, $page])
             ->with('status', 'page-updated');
@@ -444,6 +449,7 @@ class PageController extends Controller
         ]);
 
         app(PageLinkResolver::class)->sync($page);
+        app(DiagramEmbedRenderer::class)->sync($page);
 
         return redirect()
             ->route('workspaces.pages.edit', [$workspace, $page])
@@ -722,6 +728,13 @@ class PageController extends Controller
         // Attach to new parent in target workspace (if specified)
         if ($targetParent) {
             $page->appendToNode($targetParent)->save();
+        }
+
+        $movedPages = Page::whereIn('id', array_merge([$page->id], $descendantIds))->get();
+
+        foreach ($movedPages as $movedPage) {
+            app(PageLinkResolver::class)->sync($movedPage);
+            app(DiagramEmbedRenderer::class)->sync($movedPage);
         }
 
         return redirect()

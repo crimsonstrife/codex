@@ -251,20 +251,11 @@
                         {{-- Page content --}}
                         {{-- feat 3.4: content is passed through PageLinkResolver so [[Page Title]]
                              syntax is resolved to hyperlinks at render time. --}}
-                        @php $linkResolver = app(\App\Services\PageLinkResolver::class); @endphp
+                        @php $pageContentRenderer = app(\App\Services\PageContentRenderer::class); @endphp
                         <div class="card-body p-4" id="page-content">
-                            @if($page->content_type === 'markdown')
-                                <div class="prose dark:prose-invert max-w-none">
-                                    {!! $linkResolver->render(
-                                            app(\Spatie\LaravelMarkdown\MarkdownRenderer::class)->toHtml($page->content ?? ''),
-                                            $workspace
-                                        ) !!}
-                                </div>
-                            @else
-                                <div class="prose dark:prose-invert max-w-none">
-                                    {!! $linkResolver->render($page->content ?? '', $workspace) !!}
-                                </div>
-                            @endif
+                            <div class="prose dark:prose-invert max-w-none">
+                                {!! $pageContentRenderer->render($page->content, $page->content_type, $workspace) !!}
+                            </div>
                         </div>
 
                         @if($previousPage || $nextPage)

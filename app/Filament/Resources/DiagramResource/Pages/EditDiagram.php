@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\DiagramResource\Pages;
 
 use App\Filament\Resources\DiagramResource;
-use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
 class EditDiagram extends EditRecord
@@ -12,6 +11,6 @@ class EditDiagram extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [Actions\DeleteAction::make()];
+        return [DiagramResource::getDeleteAction()];
     }
 }
