@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\PageTemplate;
 use App\Models\ScriptProject;
 use App\Models\ScriptRevision;
@@ -11,6 +12,7 @@ use App\Services\ScriptRenderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
@@ -26,7 +28,12 @@ class ScriptProjectController extends Controller
         $this->authorize('view', $workspace);
         $this->ensureUserCanCreateScript($workspace);
 
-        return view('scripts.create', compact('workspace'));
+        $categories = Category::where('workspace_id', $workspace->id)
+            ->orWhereNull('workspace_id')
+            ->orderBy('name')
+            ->get();
+
+        return view('scripts.create', compact('workspace', 'categories'));
     }
 
     public function store(Request $request, Workspace $workspace): RedirectResponse
@@ -39,6 +46,13 @@ class ScriptProjectController extends Controller
             'logline' => 'nullable|string|max:255',
             'synopsis' => 'nullable|string',
             'status' => 'required|in:draft,published,archived',
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => [
+                'uuid',
+                Rule::exists('categories', 'id')->where(
+                    fn ($query) => $query->where('workspace_id', $workspace->id)->orWhereNull('workspace_id')
+                ),
+            ],
         ]);
 
         $scriptProject = ScriptProject::create([
@@ -48,6 +62,8 @@ class ScriptProjectController extends Controller
             'type' => ScriptProject::TYPE_SCREENPLAY,
             'document' => $this->documentService->defaultDocument(),
         ]);
+
+        $scriptProject->categories()->sync($validated['category_ids'] ?? []);
 
         $this->createRevision($scriptProject, 'Initial draft');
 
@@ -62,6 +78,7 @@ class ScriptProjectController extends Controller
 
         $script->load([
             'author',
+            'categories',
             'entities',
             'binderLinks.page.author',
             'revisions.user',
@@ -85,9 +102,14 @@ class ScriptProjectController extends Controller
     public function edit(Workspace $workspace, ScriptProject $script): View
     {
         $this->authorize('update', $script);
-        $script->load(['characters', 'locations']);
+        $script->load(['categories', 'characters', 'locations']);
 
-        return view('scripts.edit', compact('workspace', 'script'));
+        $categories = Category::where('workspace_id', $workspace->id)
+            ->orWhereNull('workspace_id')
+            ->orderBy('name')
+            ->get();
+
+        return view('scripts.edit', compact('workspace', 'script', 'categories'));
     }
 
     public function update(Request $request, Workspace $workspace, ScriptProject $script): RedirectResponse
@@ -99,6 +121,13 @@ class ScriptProjectController extends Controller
             'logline' => 'nullable|string|max:255',
             'synopsis' => 'nullable|string',
             'status' => 'required|in:draft,published,archived',
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => [
+                'uuid',
+                Rule::exists('categories', 'id')->where(
+                    fn ($query) => $query->where('workspace_id', $workspace->id)->orWhereNull('workspace_id')
+                ),
+            ],
             'document' => 'required|string',
             'change_summary' => 'nullable|string|max:255',
         ]);
@@ -112,6 +141,8 @@ class ScriptProjectController extends Controller
             'status' => $validated['status'],
             'document' => $document,
         ]);
+
+        $script->categories()->sync($validated['category_ids'] ?? []);
 
         $this->createRevision($script, $validated['change_summary'] ?? null);
 

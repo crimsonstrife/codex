@@ -51,6 +51,24 @@
                             </select>
                         </div>
 
+                        @if($categories->isNotEmpty())
+                            <div class="mb-4">
+                                <x-label value="{{ __('Categories') }}" />
+                                <div class="d-flex flex-wrap gap-2 mt-1">
+                                    @foreach($categories as $category)
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="category_ids[]"
+                                                   id="script_cat_{{ $category->id }}" value="{{ $category->id }}"
+                                                   {{ in_array($category->id, old('category_ids', [])) ? 'checked' : '' }} />
+                                            <label class="form-check-label" for="script_cat_{{ $category->id }}">
+                                                {{ $category->name }}
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="d-flex align-items-center justify-content-between">
                             <a href="{{ route('workspaces.show', $workspace) }}"
                                class="btn btn-link text-body-secondary text-decoration-none">

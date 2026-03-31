@@ -58,6 +58,13 @@
                                         <span><i class="fas fa-clock me-1"></i>{{ $script->updated_at->diffForHumans() }}</span>
                                         <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ ucfirst($script->status) }}</span>
                                     </div>
+                                    @if($script->categories->isNotEmpty())
+                                        <div class="d-flex flex-wrap gap-2 mt-2">
+                                            @foreach($script->categories as $category)
+                                                <span class="badge bg-primary-subtle text-primary-emphasis">{{ $category->name }}</span>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class="d-flex flex-wrap gap-2 justify-content-end">
                                     <a href="{{ route('workspaces.scripts.edit', [$workspace, $script]) }}" class="btn btn-sm btn-outline-secondary">

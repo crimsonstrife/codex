@@ -13,6 +13,13 @@
                             {{ $diagram->diagram_type === 'drawio' ? 'draw.io' : 'Mermaid (Native)' }}
                         </span>
                     </h2>
+                    @if($diagram->categories->isNotEmpty())
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            @foreach($diagram->categories as $category)
+                                <span class="badge bg-primary-subtle text-primary-emphasis">{{ $category->name }}</span>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
                 <div class="d-flex gap-2">
                     <button type="button"

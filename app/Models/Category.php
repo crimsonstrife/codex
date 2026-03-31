@@ -56,4 +56,9 @@ class Category extends Model
     {
         return $this->morphedByMany(Diagram::class, 'categorizable');
     }
+
+    public function scripts(): MorphToMany
+    {
+        return $this->morphedByMany(ScriptProject::class, 'categorizable');
+    }
 }

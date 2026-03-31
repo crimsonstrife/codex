@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Page;
 use App\Models\Workspace;
 use App\Services\ForgeService;
@@ -33,16 +34,65 @@ class WorkspaceController extends Controller
 
         // Load pages flat (with author + tags for the table view), then derive tree in-memory.
         $allPages = $workspace->pages()
-            ->with(['author', 'tags'])
+            ->with(['author', 'categories', 'tags'])
             ->defaultOrder()
             ->get();
 
         $pages = $allPages->toTree();
         $scripts = $workspace->scripts()
+            ->with('categories')
             ->withCount(['binderLinks', 'entities'])
             ->latest('updated_at')
             ->get();
-        $diagrams = $workspace->diagrams()->latest('updated_at')->get();
+        $diagrams = $workspace->diagrams()
+            ->with('categories')
+            ->latest('updated_at')
+            ->get();
+
+        $categoryGroups = Category::query()
+            ->where(function ($query) use ($workspace) {
+                $query->whereHas('pages', fn ($pageQuery) => $pageQuery->where('workspace_id', $workspace->id))
+                    ->orWhereHas('diagrams', fn ($diagramQuery) => $diagramQuery->where('workspace_id', $workspace->id))
+                    ->orWhereHas('scripts', fn ($scriptQuery) => $scriptQuery->where('workspace_id', $workspace->id));
+            })
+            ->with([
+                'pages' => fn ($query) => $query
+                    ->where('workspace_id', $workspace->id)
+                    ->with('author')
+                    ->orderBy('title'),
+                'diagrams' => fn ($query) => $query
+                    ->where('workspace_id', $workspace->id)
+                    ->orderBy('title'),
+                'scripts' => fn ($query) => $query
+                    ->where('workspace_id', $workspace->id)
+                    ->withCount(['binderLinks', 'entities'])
+                    ->orderBy('title'),
+            ])
+            ->orderBy('name')
+            ->get()
+            ->map(function (Category $category): array {
+                $pageCount = $category->pages->count();
+                $diagramCount = $category->diagrams->count();
+                $scriptCount = $category->scripts->count();
+
+                return [
+                    'category' => $category,
+                    'pageCount' => $pageCount,
+                    'diagramCount' => $diagramCount,
+                    'scriptCount' => $scriptCount,
+                    'totalCount' => $pageCount + $diagramCount + $scriptCount,
+                ];
+            });
+
+        $uncategorizedPages = $allPages
+            ->filter(fn (Page $page) => $page->categories->isEmpty())
+            ->values();
+        $uncategorizedDiagrams = $diagrams
+            ->filter(fn ($diagram) => $diagram->categories->isEmpty())
+            ->values();
+        $uncategorizedScripts = $scripts
+            ->filter(fn ($script) => $script->categories->isEmpty())
+            ->values();
 
         $pageIds = $workspace->pages()->pluck('id');
         $activities = Activity::with(['causer', 'subject'])
@@ -80,7 +130,8 @@ class WorkspaceController extends Controller
         return view('workspaces.show', compact(
             'workspace', 'pages', 'allPages', 'scripts', 'diagrams', 'activities',
             'membersPreview', 'memberCount', 'pinnedPages', 'homePage',
-            'homePageChildPages', 'homePagePrevious', 'homePageNext'
+            'homePageChildPages', 'homePagePrevious', 'homePageNext',
+            'categoryGroups', 'uncategorizedPages', 'uncategorizedDiagrams', 'uncategorizedScripts'
         ));
     }
 

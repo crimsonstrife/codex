@@ -78,6 +78,24 @@
                                               class="form-control mt-1">{{ old('synopsis', $script->synopsis) }}</textarea>
                                 </div>
 
+                                @if($categories->isNotEmpty())
+                                    <div class="mb-3">
+                                        <x-label value="{{ __('Categories') }}" />
+                                        <div class="d-flex flex-wrap gap-2 mt-1">
+                                            @foreach($categories as $category)
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="checkbox" name="category_ids[]"
+                                                           id="script_cat_{{ $category->id }}" value="{{ $category->id }}"
+                                                           {{ in_array($category->id, old('category_ids', $script->categories->pluck('id')->toArray())) ? 'checked' : '' }} />
+                                                    <label class="form-check-label" for="script_cat_{{ $category->id }}">
+                                                        {{ $category->name }}
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
                                 <div class="mb-3">
                                     <x-label for="document" value="{{ __('Screenplay Draft') }}" />
                                     <input type="hidden" id="document" name="document" value="{{ old('document', json_encode($script->document, JSON_THROW_ON_ERROR)) }}">

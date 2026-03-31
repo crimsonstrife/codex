@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
+use App\Models\Diagram;
 use App\Models\Page;
 use App\Models\PageTemplate;
 use App\Models\ScriptEntity;
@@ -128,6 +130,57 @@ class ScriptProjectFeatureTest extends TestCase
             'revision_number' => 2,
             'change_summary' => 'Scene polish',
         ]);
+    }
+
+    public function test_scripts_can_be_assigned_and_updated_with_categories(): void
+    {
+        $owner = $this->createUser();
+        $workspace = $this->createWorkspace($owner);
+        $storyCategory = Category::create([
+            'name' => 'Story',
+            'workspace_id' => $workspace->id,
+        ]);
+        $productionCategory = Category::create([
+            'name' => 'Production',
+            'workspace_id' => $workspace->id,
+        ]);
+
+        $this->actingAs($owner)->post(route('workspaces.scripts.store', $workspace), [
+            'title' => 'Pilot',
+            'logline' => 'An exhausted fixer takes one last job.',
+            'synopsis' => 'A pilot script with a binder-friendly workspace.',
+            'status' => 'draft',
+            'category_ids' => [(string) $storyCategory->id],
+        ])->assertRedirect();
+
+        $script = ScriptProject::query()->firstOrFail();
+
+        $this->assertSame([(string) $storyCategory->id], $script->categories()->pluck('categories.id')->map(fn ($id) => (string) $id)->all());
+
+        $this->actingAs($owner)
+            ->get(route('workspaces.scripts.show', [$workspace, $script]))
+            ->assertOk()
+            ->assertSee('Story');
+
+        $this->actingAs($owner)->put(route('workspaces.scripts.update', [$workspace, $script]), [
+            'title' => 'Pilot',
+            'logline' => 'An exhausted fixer takes one last job.',
+            'synopsis' => 'Updated synopsis',
+            'status' => 'draft',
+            'document' => json_encode($script->document, JSON_THROW_ON_ERROR),
+            'change_summary' => 'Retagged',
+            'category_ids' => [(string) $productionCategory->id],
+        ])->assertRedirect(route('workspaces.scripts.show', [$workspace, $script]));
+
+        $script->refresh();
+
+        $this->assertSame([(string) $productionCategory->id], $script->categories()->pluck('categories.id')->map(fn ($id) => (string) $id)->all());
+
+        $this->actingAs($owner)
+            ->get(route('workspaces.scripts.show', [$workspace, $script]))
+            ->assertOk()
+            ->assertSee('Production')
+            ->assertDontSee('Story');
     }
 
     public function test_entity_renames_flow_through_rendered_and_printed_script_output(): void
@@ -386,6 +439,67 @@ class ScriptProjectFeatureTest extends TestCase
             ->assertSeeText('INT. BATHROOM, SAFE HOUSE - NIGHT')
             ->assertSeeText('MARA (V.O.)')
             ->assertSee('> CUT TO:', false);
+    }
+
+    public function test_workspace_view_groups_pages_diagrams_and_scripts_by_category(): void
+    {
+        $owner = $this->createUser();
+        $workspace = $this->createWorkspace($owner);
+        $storyCategory = Category::create([
+            'name' => 'Story',
+            'workspace_id' => $workspace->id,
+        ]);
+        $worldCategory = Category::create([
+            'name' => 'Worldbuilding',
+            'workspace_id' => $workspace->id,
+        ]);
+
+        $storyPage = new Page([
+            'title' => 'Story Bible',
+            'content' => '<p>Story notes</p>',
+            'content_type' => 'richtext',
+            'workspace_id' => $workspace->id,
+            'author_id' => $owner->id,
+            'status' => 'published',
+        ]);
+        $storyPage->saveAsRoot();
+        $storyPage->categories()->sync([(string) $storyCategory->id]);
+
+        $uncategorizedPage = new Page([
+            'title' => 'Loose Notes',
+            'content' => '<p>Unsorted notes</p>',
+            'content_type' => 'richtext',
+            'workspace_id' => $workspace->id,
+            'author_id' => $owner->id,
+            'status' => 'draft',
+        ]);
+        $uncategorizedPage->saveAsRoot();
+
+        $diagram = Diagram::create([
+            'title' => 'World Map',
+            'workspace_id' => $workspace->id,
+            'author_id' => $owner->id,
+            'diagram_type' => 'mermaid',
+            'diagram_data' => 'graph TD; A-->B',
+        ]);
+        $diagram->categories()->sync([(string) $worldCategory->id]);
+
+        $script = $this->createScript($workspace, $owner);
+        $script->categories()->sync([(string) $storyCategory->id]);
+
+        $this->actingAs($owner)
+            ->get(route('workspaces.show', $workspace))
+            ->assertOk()
+            ->assertSeeText('View by Category')
+            ->assertSeeText('Story')
+            ->assertSeeText('Worldbuilding')
+            ->assertSeeText('1 page')
+            ->assertSeeText('0 diagrams')
+            ->assertSeeText('1 script')
+            ->assertSeeText('1 diagram')
+            ->assertSeeText('0 scripts')
+            ->assertSeeText('Uncategorized')
+            ->assertSeeText('Loose Notes');
     }
 
     protected function createUser(): User
