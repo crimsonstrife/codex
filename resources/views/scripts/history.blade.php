@@ -25,7 +25,7 @@
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
-                        <thead class="table-light">
+                        <thead class="table-auto">
                             <tr>
                                 <th>Revision</th>
                                 <th>Updated By</th>

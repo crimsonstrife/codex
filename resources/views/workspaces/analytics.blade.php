@@ -178,7 +178,7 @@
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover table-sm mb-0 align-middle">
-                        <thead class="table-light">
+                        <thead class="table-auto">
                             <tr>
                                 <th class="ps-4">#</th>
                                 <th>Page</th>

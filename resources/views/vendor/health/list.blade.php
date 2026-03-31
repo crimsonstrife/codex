@@ -61,7 +61,7 @@
                         $hasDetails = $detailCount > 0;
                     @endphp
 
-                    <div class="overflow-hidden rounded-xl bg-white shadow-md shadow-gray-200 dark:border-t dark:border-gray-700 dark:bg-gray-800 dark:shadow-black/25 dark:shadow-md">
+                    <div class="overflow-hidden rounded-xl shadow-md shadow-gray-200 dark:border-t dark:border-gray-700 dark:bg-gray-800 dark:shadow-black/25 dark:shadow-md">
                         <div class="flex items-start gap-3 px-4 py-5 sm:p-6">
                             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full {{ $indicator['wrapper'] }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {{ $indicator['icon'] }}" viewBox="0 0 20 20" fill="currentColor">

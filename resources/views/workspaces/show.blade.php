@@ -230,7 +230,7 @@
                         @else
                         <div class="table-responsive">
                             <table id="pages-table" class="table table-hover table-sm mb-0 align-middle">
-                                <thead class="table-light">
+                                <thead class="table-auto">
                                     <tr>
                                         <th class="ps-3" data-sort="title">Title</th>
                                         <th data-sort="status">Status</th>
@@ -346,197 +346,244 @@
 
                     @if($hasCategoryOverview)
                     <div class="card shadow-sm mb-4" id="workspace-categories">
-                        <div class="card-header p-4 d-flex align-items-center justify-content-between gap-3">
-                            <div>
-                                <h2 class="h5 mb-1">
-                                    <i class="fas fa-layer-group me-2 text-body-secondary"></i>View by Category
-                                </h2>
-                                <p class="small text-body-secondary mb-0">
-                                    Group pages, diagrams, and scripts into shared workspace categories.
-                                </p>
+                        <div class="card-header p-4">
+                            <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+                                <div>
+                                    <h2 class="h5 mb-1">
+                                        <i class="fas fa-layer-group me-2 text-body-secondary"></i>View by Category
+                                    </h2>
+                                    <p class="small text-body-secondary mb-0">
+                                        Group pages, diagrams, and scripts into shared workspace categories.
+                                    </p>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="badge bg-secondary-subtle text-secondary-emphasis">
+                                        {{ $categoryGroups->count() }} {{ Str::plural('category', $categoryGroups->count()) }}
+                                    </span>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#workspace-categories-body"
+                                            aria-expanded="false"
+                                            aria-controls="workspace-categories-body">
+                                        Show categories
+                                    </button>
+                                </div>
                             </div>
-                            <span class="badge bg-secondary-subtle text-secondary-emphasis">
-                                {{ $categoryGroups->count() }} {{ Str::plural('category', $categoryGroups->count()) }}
-                            </span>
                         </div>
-                        <div class="card-body p-4">
-                            @if($categoryGroups->isNotEmpty())
-                                <div class="d-flex flex-wrap gap-2 mb-4">
+                        <div id="workspace-categories-body" class="collapse">
+                            <div class="card-body p-4">
+                                <p class="small text-body-secondary mb-4">
+                                    Expand the categories you want to browse. Each group stays collapsed by default to keep large workspaces manageable.
+                                </p>
+
+                                <div class="accordion" id="workspace-category-accordion">
                                     @foreach($categoryGroups as $group)
-                                        @php $category = $group['category']; @endphp
-                                        <a href="#category-{{ $category->id }}"
-                                           class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2">
-                                            <span class="rounded-circle d-inline-block"
-                                                  style="width:0.7rem;height:0.7rem;background-color:{{ $category->color ?? '#94a3b8' }};"></span>
-                                            <span>{{ $category->name }}</span>
-                                            <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ $group['totalCount'] }}</span>
-                                        </a>
+                                        @php
+                                            $category = $group['category'];
+                                            $collapseId = 'category-panel-'.$category->id;
+                                            $headingId = 'category-heading-'.$category->id;
+                                        @endphp
+                                        <div class="accordion-item border rounded-3 overflow-hidden mb-3">
+                                            <h3 class="accordion-header" id="{{ $headingId }}">
+                                                <button class="accordion-button collapsed"
+                                                        type="button"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#{{ $collapseId }}"
+                                                        aria-expanded="false"
+                                                        aria-controls="{{ $collapseId }}">
+                                                    <span class="d-flex align-items-start justify-content-between gap-3 w-100 me-3">
+                                                        <span class="text-start">
+                                                            <span class="d-flex align-items-center gap-2 flex-wrap">
+                                                                <span class="rounded-circle d-inline-block"
+                                                                      style="width:0.8rem;height:0.8rem;background-color:{{ $category->color ?? '#94a3b8' }};"></span>
+                                                                <span class="fw-semibold text-body">{{ $category->name }}</span>
+                                                            </span>
+                                                            <span class="small text-body-secondary d-block mt-1">
+                                                                {{ $group['pageCount'] }} {{ Str::plural('page', $group['pageCount']) }},
+                                                                {{ $group['diagramCount'] }} {{ Str::plural('diagram', $group['diagramCount']) }},
+                                                                {{ $group['scriptCount'] }} {{ Str::plural('script', $group['scriptCount']) }}
+                                                            </span>
+                                                            @if($category->description)
+                                                                <span class="small text-body-secondary d-block mt-2">{{ $category->description }}</span>
+                                                            @endif
+                                                        </span>
+                                                        <span class="badge bg-secondary-subtle text-secondary-emphasis mt-1">
+                                                            {{ $group['totalCount'] }}
+                                                        </span>
+                                                    </span>
+                                                </button>
+                                            </h3>
+                                            <div id="{{ $collapseId }}"
+                                                 class="accordion-collapse collapse"
+                                                 aria-labelledby="{{ $headingId }}">
+                                                <div class="accordion-body p-4">
+                                                    <div class="row g-3">
+                                                        @if($group['pageCount'] > 0)
+                                                            <div class="col-lg-4">
+                                                                <div class="border rounded-3 h-100 p-3">
+                                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Pages</div>
+                                                                    <div class="d-flex flex-column gap-2">
+                                                                        @foreach($category->pages as $page)
+                                                                            <a href="{{ route('workspaces.pages.show', [$workspace, $page]) }}"
+                                                                               class="text-decoration-none border rounded-3 px-3 py-2">
+                                                                                <div class="fw-medium small">{{ $page->title }}</div>
+                                                                                <div class="small text-body-secondary">
+                                                                                    {{ $page->author?->name ?? 'Unknown author' }} • {{ $page->updated_at->diffForHumans() }}
+                                                                                </div>
+                                                                            </a>
+                                                                        @endforeach
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+
+                                                        @if($group['diagramCount'] > 0)
+                                                            <div class="col-lg-4">
+                                                                <div class="border rounded-3 h-100 p-3">
+                                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Diagrams</div>
+                                                                    <div class="d-flex flex-column gap-2">
+                                                                        @foreach($category->diagrams as $diagram)
+                                                                            <a href="{{ route('workspaces.diagrams.show', [$workspace, $diagram]) }}"
+                                                                               class="text-decoration-none border rounded-3 px-3 py-2">
+                                                                                <div class="fw-medium small">{{ $diagram->title }}</div>
+                                                                                <div class="small text-body-secondary">
+                                                                                    {{ ucfirst($diagram->diagram_type) }} • {{ $diagram->updated_at->diffForHumans() }}
+                                                                                </div>
+                                                                            </a>
+                                                                        @endforeach
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+
+                                                        @if($group['scriptCount'] > 0)
+                                                            <div class="col-lg-4">
+                                                                <div class="border rounded-3 h-100 p-3">
+                                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Scripts</div>
+                                                                    <div class="d-flex flex-column gap-2">
+                                                                        @foreach($category->scripts as $script)
+                                                                            <a href="{{ route('workspaces.scripts.show', [$workspace, $script]) }}"
+                                                                               class="text-decoration-none border rounded-3 px-3 py-2">
+                                                                                <div class="fw-medium small">{{ $script->title }}</div>
+                                                                                <div class="small text-body-secondary">
+                                                                                    {{ ucfirst($script->status) }} • {{ $script->binder_links_count }} binder {{ Str::plural('page', $script->binder_links_count) }}
+                                                                                </div>
+                                                                            </a>
+                                                                        @endforeach
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     @endforeach
+
                                     @if($uncategorizedPages->isNotEmpty() || $uncategorizedDiagrams->isNotEmpty() || $uncategorizedScripts->isNotEmpty())
-                                        <a href="#category-uncategorized"
-                                           class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2">
-                                            <i class="fas fa-inbox text-body-secondary small"></i>
-                                            <span>Uncategorized</span>
-                                            <span class="badge bg-secondary-subtle text-secondary-emphasis">
-                                                {{ $uncategorizedPages->count() + $uncategorizedDiagrams->count() + $uncategorizedScripts->count() }}
-                                            </span>
-                                        </a>
+                                        @php
+                                            $uncategorizedCount = $uncategorizedPages->count()
+                                                + $uncategorizedDiagrams->count()
+                                                + $uncategorizedScripts->count();
+                                        @endphp
+                                        <div class="accordion-item border rounded-3 overflow-hidden">
+                                            <h3 class="accordion-header" id="category-heading-uncategorized">
+                                                <button class="accordion-button collapsed"
+                                                        type="button"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#category-panel-uncategorized"
+                                                        aria-expanded="false"
+                                                        aria-controls="category-panel-uncategorized">
+                                                    <span class="d-flex align-items-start justify-content-between gap-3 w-100 me-3">
+                                                        <span class="text-start">
+                                                            <span class="d-flex align-items-center gap-2 flex-wrap">
+                                                                <i class="fas fa-inbox text-body-secondary"></i>
+                                                                <span class="fw-semibold text-body">Uncategorized</span>
+                                                            </span>
+                                                            <span class="small text-body-secondary d-block mt-1">
+                                                                {{ $uncategorizedPages->count() }} {{ Str::plural('page', $uncategorizedPages->count()) }},
+                                                                {{ $uncategorizedDiagrams->count() }} {{ Str::plural('diagram', $uncategorizedDiagrams->count()) }},
+                                                                {{ $uncategorizedScripts->count() }} {{ Str::plural('script', $uncategorizedScripts->count()) }}
+                                                            </span>
+                                                            <span class="small text-body-secondary d-block mt-2">
+                                                                Items without a category assignment still live here until you group them.
+                                                            </span>
+                                                        </span>
+                                                        <span class="badge bg-secondary-subtle text-secondary-emphasis mt-1">
+                                                            {{ $uncategorizedCount }}
+                                                        </span>
+                                                    </span>
+                                                </button>
+                                            </h3>
+                                            <div id="category-panel-uncategorized"
+                                                 class="accordion-collapse collapse"
+                                                 aria-labelledby="category-heading-uncategorized">
+                                                <div class="accordion-body p-4">
+                                                    <div class="row g-3">
+                                                        @if($uncategorizedPages->isNotEmpty())
+                                                            <div class="col-lg-4">
+                                                                <div class="border rounded-3 h-100 p-3">
+                                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Pages</div>
+                                                                    <div class="d-flex flex-column gap-2">
+                                                                        @foreach($uncategorizedPages as $page)
+                                                                            <a href="{{ route('workspaces.pages.show', [$workspace, $page]) }}"
+                                                                               class="text-decoration-none border rounded-3 px-3 py-2">
+                                                                                <div class="fw-medium small">{{ $page->title }}</div>
+                                                                                <div class="small text-body-secondary">
+                                                                                    {{ $page->author?->name ?? 'Unknown author' }} • {{ $page->updated_at->diffForHumans() }}
+                                                                                </div>
+                                                                            </a>
+                                                                        @endforeach
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+
+                                                        @if($uncategorizedDiagrams->isNotEmpty())
+                                                            <div class="col-lg-4">
+                                                                <div class="border rounded-3 h-100 p-3">
+                                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Diagrams</div>
+                                                                    <div class="d-flex flex-column gap-2">
+                                                                        @foreach($uncategorizedDiagrams as $diagram)
+                                                                            <a href="{{ route('workspaces.diagrams.show', [$workspace, $diagram]) }}"
+                                                                               class="text-decoration-none border rounded-3 px-3 py-2">
+                                                                                <div class="fw-medium small">{{ $diagram->title }}</div>
+                                                                                <div class="small text-body-secondary">
+                                                                                    {{ ucfirst($diagram->diagram_type) }} • {{ $diagram->updated_at->diffForHumans() }}
+                                                                                </div>
+                                                                            </a>
+                                                                        @endforeach
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+
+                                                        @if($uncategorizedScripts->isNotEmpty())
+                                                            <div class="col-lg-4">
+                                                                <div class="border rounded-3 h-100 p-3">
+                                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Scripts</div>
+                                                                    <div class="d-flex flex-column gap-2">
+                                                                        @foreach($uncategorizedScripts as $script)
+                                                                            <a href="{{ route('workspaces.scripts.show', [$workspace, $script]) }}"
+                                                                               class="text-decoration-none border rounded-3 px-3 py-2">
+                                                                                <div class="fw-medium small">{{ $script->title }}</div>
+                                                                                <div class="small text-body-secondary">
+                                                                                    {{ ucfirst($script->status) }} • {{ $script->binder_links_count }} binder {{ Str::plural('page', $script->binder_links_count) }}
+                                                                                </div>
+                                                                            </a>
+                                                                        @endforeach
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     @endif
                                 </div>
-
-                                @foreach($categoryGroups as $group)
-                                    @php $category = $group['category']; @endphp
-                                    <div id="category-{{ $category->id }}" class="{{ $loop->last && $uncategorizedPages->isEmpty() && $uncategorizedDiagrams->isEmpty() && $uncategorizedScripts->isEmpty() ? '' : 'border-bottom pb-4 mb-4' }}">
-                                        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
-                                            <div>
-                                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                                    <span class="rounded-circle d-inline-block"
-                                                          style="width:0.8rem;height:0.8rem;background-color:{{ $category->color ?? '#94a3b8' }};"></span>
-                                                    <h3 class="h6 mb-0">{{ $category->name }}</h3>
-                                                </div>
-                                                <p class="small text-body-secondary mb-0 mt-1">
-                                                    {{ $group['pageCount'] }} {{ Str::plural('page', $group['pageCount']) }},
-                                                    {{ $group['diagramCount'] }} {{ Str::plural('diagram', $group['diagramCount']) }},
-                                                    {{ $group['scriptCount'] }} {{ Str::plural('script', $group['scriptCount']) }}
-                                                </p>
-                                                @if($category->description)
-                                                    <p class="small text-body-secondary mb-0 mt-2">{{ $category->description }}</p>
-                                                @endif
-                                            </div>
-                                        </div>
-
-                                        <div class="row g-3 mt-1">
-                                            @if($group['pageCount'] > 0)
-                                                <div class="col-lg-4">
-                                                    <div class="border rounded-3 h-100 p-3">
-                                                        <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Pages</div>
-                                                        <div class="d-flex flex-column gap-2">
-                                                            @foreach($category->pages as $page)
-                                                                <a href="{{ route('workspaces.pages.show', [$workspace, $page]) }}"
-                                                                   class="text-decoration-none border rounded-3 px-3 py-2">
-                                                                    <div class="fw-medium small">{{ $page->title }}</div>
-                                                                    <div class="small text-body-secondary">
-                                                                        {{ $page->author?->name ?? 'Unknown author' }} • {{ $page->updated_at->diffForHumans() }}
-                                                                    </div>
-                                                                </a>
-                                                            @endforeach
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endif
-
-                                            @if($group['diagramCount'] > 0)
-                                                <div class="col-lg-4">
-                                                    <div class="border rounded-3 h-100 p-3">
-                                                        <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Diagrams</div>
-                                                        <div class="d-flex flex-column gap-2">
-                                                            @foreach($category->diagrams as $diagram)
-                                                                <a href="{{ route('workspaces.diagrams.show', [$workspace, $diagram]) }}"
-                                                                   class="text-decoration-none border rounded-3 px-3 py-2">
-                                                                    <div class="fw-medium small">{{ $diagram->title }}</div>
-                                                                    <div class="small text-body-secondary">
-                                                                        {{ ucfirst($diagram->diagram_type) }} • {{ $diagram->updated_at->diffForHumans() }}
-                                                                    </div>
-                                                                </a>
-                                                            @endforeach
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endif
-
-                                            @if($group['scriptCount'] > 0)
-                                                <div class="col-lg-4">
-                                                    <div class="border rounded-3 h-100 p-3">
-                                                        <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Scripts</div>
-                                                        <div class="d-flex flex-column gap-2">
-                                                            @foreach($category->scripts as $script)
-                                                                <a href="{{ route('workspaces.scripts.show', [$workspace, $script]) }}"
-                                                                   class="text-decoration-none border rounded-3 px-3 py-2">
-                                                                    <div class="fw-medium small">{{ $script->title }}</div>
-                                                                    <div class="small text-body-secondary">
-                                                                        {{ ucfirst($script->status) }} • {{ $script->binder_links_count }} binder {{ Str::plural('page', $script->binder_links_count) }}
-                                                                    </div>
-                                                                </a>
-                                                            @endforeach
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                @endforeach
-                            @endif
-
-                            @if($uncategorizedPages->isNotEmpty() || $uncategorizedDiagrams->isNotEmpty() || $uncategorizedScripts->isNotEmpty())
-                                <div id="category-uncategorized">
-                                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        <i class="fas fa-inbox text-body-secondary"></i>
-                                        <h3 class="h6 mb-0">Uncategorized</h3>
-                                    </div>
-                                    <p class="small text-body-secondary mb-0 mt-1">
-                                        Items without a category assignment still live here until you group them.
-                                    </p>
-
-                                    <div class="row g-3 mt-1">
-                                        @if($uncategorizedPages->isNotEmpty())
-                                            <div class="col-lg-4">
-                                                <div class="border rounded-3 h-100 p-3">
-                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Pages</div>
-                                                    <div class="d-flex flex-column gap-2">
-                                                        @foreach($uncategorizedPages as $page)
-                                                            <a href="{{ route('workspaces.pages.show', [$workspace, $page]) }}"
-                                                               class="text-decoration-none border rounded-3 px-3 py-2">
-                                                                <div class="fw-medium small">{{ $page->title }}</div>
-                                                                <div class="small text-body-secondary">
-                                                                    {{ $page->author?->name ?? 'Unknown author' }} • {{ $page->updated_at->diffForHumans() }}
-                                                                </div>
-                                                            </a>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endif
-
-                                        @if($uncategorizedDiagrams->isNotEmpty())
-                                            <div class="col-lg-4">
-                                                <div class="border rounded-3 h-100 p-3">
-                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Diagrams</div>
-                                                    <div class="d-flex flex-column gap-2">
-                                                        @foreach($uncategorizedDiagrams as $diagram)
-                                                            <a href="{{ route('workspaces.diagrams.show', [$workspace, $diagram]) }}"
-                                                               class="text-decoration-none border rounded-3 px-3 py-2">
-                                                                <div class="fw-medium small">{{ $diagram->title }}</div>
-                                                                <div class="small text-body-secondary">
-                                                                    {{ ucfirst($diagram->diagram_type) }} • {{ $diagram->updated_at->diffForHumans() }}
-                                                                </div>
-                                                            </a>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endif
-
-                                        @if($uncategorizedScripts->isNotEmpty())
-                                            <div class="col-lg-4">
-                                                <div class="border rounded-3 h-100 p-3">
-                                                    <div class="small fw-semibold text-uppercase text-body-secondary mb-2">Scripts</div>
-                                                    <div class="d-flex flex-column gap-2">
-                                                        @foreach($uncategorizedScripts as $script)
-                                                            <a href="{{ route('workspaces.scripts.show', [$workspace, $script]) }}"
-                                                               class="text-decoration-none border rounded-3 px-3 py-2">
-                                                                <div class="fw-medium small">{{ $script->title }}</div>
-                                                                <div class="small text-body-secondary">
-                                                                    {{ ucfirst($script->status) }} • {{ $script->binder_links_count }} binder {{ Str::plural('page', $script->binder_links_count) }}
-                                                                </div>
-                                                            </a>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endif
+                            </div>
                         </div>
                     </div>
                     @endif
