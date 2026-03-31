@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Diagram;
+use App\Models\Page;
+use App\Models\PageDiagramEmbed;
 use App\Models\Workspace;
 use App\Support\CodexRuntimeConfig;
 use Illuminate\Support\Facades\Gate;
@@ -17,14 +19,7 @@ class DiagramEmbedRenderer
 
     public function render(string $content, Workspace $workspace, string $variant = 'web'): string
     {
-        if (! preg_match_all(self::PATTERN, $content, $matches)) {
-            return $content;
-        }
-
-        $ids = array_values(array_unique(array_map(
-            static fn (string $id): string => strtolower(trim($id)),
-            $matches[1] ?? [],
-        )));
+        $ids = $this->extractIds($content);
 
         if ($ids === []) {
             return $content;
@@ -61,5 +56,46 @@ class DiagramEmbedRenderer
         $content = preg_replace_callback(self::BLOCK_PATTERN, $renderMatch, $content) ?? $content;
 
         return preg_replace_callback(self::PATTERN, $renderMatch, $content) ?? $content;
+    }
+
+    public function sync(Page $page): int
+    {
+        PageDiagramEmbed::where('page_id', $page->id)->delete();
+
+        $ids = $this->extractIds($page->content ?? '');
+
+        if ($ids === []) {
+            return 0;
+        }
+
+        $diagramIds = Diagram::query()
+            ->where('workspace_id', $page->workspace_id)
+            ->whereNull('deleted_at')
+            ->whereIn('id', $ids)
+            ->pluck('id');
+
+        foreach ($diagramIds as $diagramId) {
+            PageDiagramEmbed::firstOrCreate([
+                'page_id' => $page->id,
+                'diagram_id' => $diagramId,
+            ]);
+        }
+
+        return $diagramIds->count();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function extractIds(string $content): array
+    {
+        if (! preg_match_all(self::PATTERN, $content, $matches)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_map(
+            static fn (string $id): string => strtolower(trim($id)),
+            $matches[1] ?? [],
+        )));
     }
 }

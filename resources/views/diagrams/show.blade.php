@@ -43,6 +43,36 @@
                     ])
                 </div>
             </div>
+
+            <div class="card shadow-sm mt-4">
+                <div class="card-header py-3 d-flex align-items-center justify-content-between">
+                    <h2 class="h6 fw-semibold mb-0">
+                        <i class="fas fa-file-alt me-2 text-body-secondary"></i>Used In Pages
+                        <span class="badge bg-secondary-subtle text-secondary-emphasis fw-normal ms-1">
+                            {{ $diagram->embeddedPages->count() }}
+                        </span>
+                    </h2>
+                </div>
+
+                <div class="list-group list-group-flush">
+                    @forelse($diagram->embeddedPages as $page)
+                        <a href="{{ route('workspaces.pages.show', [$workspace, $page]) }}"
+                           class="list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-3 py-3">
+                            <div class="min-w-0">
+                                <div class="fw-medium text-truncate">{{ $page->title }}</div>
+                                <div class="small text-body-secondary text-truncate">
+                                    {{ $workspace->name }}
+                                </div>
+                            </div>
+                            <i class="fas fa-arrow-right text-body-secondary small flex-shrink-0"></i>
+                        </a>
+                    @empty
+                        <div class="list-group-item text-body-secondary py-3">
+                            This diagram is not embedded in any pages yet.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
         </div>
     </div>
     <script>

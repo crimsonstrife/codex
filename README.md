@@ -160,6 +160,7 @@ composer test           # run the PHPUnit suite
 php artisan migrate --seed
 php artisan storage:link
 php artisan app-token:create "Forge"
+php artisan codex:backfill-diagram-embeds
 ```
 
 ### Seeded Local User

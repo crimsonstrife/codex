@@ -6,6 +6,7 @@ use App\Models\Diagram;
 use App\Models\Page;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\DiagramEmbedRenderer;
 use App\Services\PageContentRenderer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -152,6 +153,89 @@ class PageDiagramEmbedTest extends TestCase
             ]))
             ->assertOk()
             ->assertExactJson([]);
+    }
+
+    public function test_diagram_show_lists_pages_that_embed_it(): void
+    {
+        $owner = User::factory()->withPersonalTeam()->create();
+        $workspace = $this->createWorkspace($owner, 'Knowledge Base');
+        $diagram = $this->createDiagram($workspace, $owner, [
+            'title' => 'Release Flow',
+        ]);
+        $page = $this->createPage($workspace, $owner, [
+            'title' => 'Deployment Guide',
+            'content' => '{{diagram:'.$diagram->id.'}}',
+        ]);
+
+        app(DiagramEmbedRenderer::class)->sync($page);
+
+        $this->actingAs($owner)
+            ->get(route('workspaces.diagrams.show', [$workspace, $diagram]))
+            ->assertOk()
+            ->assertSee('Used In Pages')
+            ->assertSee('Deployment Guide');
+    }
+
+    public function test_page_update_refreshes_diagram_usage_relationships(): void
+    {
+        $owner = User::factory()->withPersonalTeam()->create();
+        $workspace = $this->createWorkspace($owner, 'Architecture');
+        $firstDiagram = $this->createDiagram($workspace, $owner, [
+            'title' => 'Current Flow',
+        ]);
+        $secondDiagram = $this->createDiagram($workspace, $owner, [
+            'title' => 'Future Flow',
+        ]);
+        $page = $this->createPage($workspace, $owner, [
+            'content' => '{{diagram:'.$firstDiagram->id.'}}',
+        ]);
+
+        app(DiagramEmbedRenderer::class)->sync($page);
+
+        $this->actingAs($owner)
+            ->put(route('workspaces.pages.update', [$workspace, $page]), [
+                'title' => $page->title,
+                'content' => '{{diagram:'.$secondDiagram->id.'}}',
+                'status' => 'draft',
+            ])
+            ->assertRedirect(route('workspaces.pages.show', [$workspace, $page]));
+
+        $this->assertDatabaseMissing('page_diagram_embeds', [
+            'page_id' => $page->id,
+            'diagram_id' => $firstDiagram->id,
+        ]);
+        $this->assertDatabaseHas('page_diagram_embeds', [
+            'page_id' => $page->id,
+            'diagram_id' => $secondDiagram->id,
+        ]);
+    }
+
+    public function test_embedded_diagram_cannot_be_deleted_until_removed_from_pages(): void
+    {
+        $owner = User::factory()->withPersonalTeam()->create();
+        $workspace = $this->createWorkspace($owner, 'Docs');
+        $diagram = $this->createDiagram($workspace, $owner, [
+            'title' => 'Support Escalation',
+        ]);
+        $page = $this->createPage($workspace, $owner, [
+            'content' => '{{diagram:'.$diagram->id.'}}',
+        ]);
+
+        app(DiagramEmbedRenderer::class)->sync($page);
+
+        $this->assertFalse($diagram->fresh()->delete());
+        $this->assertDatabaseHas('diagrams', ['id' => $diagram->id]);
+
+        $this->actingAs($owner)
+            ->put(route('workspaces.pages.update', [$workspace, $page]), [
+                'title' => $page->title,
+                'content' => '',
+                'status' => 'draft',
+            ])
+            ->assertRedirect(route('workspaces.pages.show', [$workspace, $page]));
+
+        $this->assertTrue((bool) $diagram->fresh()->delete());
+        $this->assertSoftDeleted('diagrams', ['id' => $diagram->id]);
     }
 
     private function createWorkspace(User $owner, string $name): Workspace
