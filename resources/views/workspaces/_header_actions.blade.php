@@ -13,6 +13,10 @@
         <i class="fas fa-plus me-1"></i> {{ __('New Diagram') }}
     </a>
     @can('update', $workspace)
+        <a href="{{ route('workspaces.categories.index', $workspace) }}"
+           class="btn btn-outline-secondary btn-sm" title="Categories">
+            <i class="fas fa-layer-group"></i>
+        </a>
         <a href="{{ route('workspaces.analytics', $workspace) }}"
            class="btn btn-outline-secondary btn-sm" title="Analytics">
             <i class="fas fa-chart-bar"></i>

@@ -21,6 +21,7 @@ use App\Http\Controllers\ScriptProjectController;
 use App\Http\Controllers\ScriptProjectPageController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\WorkspaceAnalyticsController;
+use App\Http\Controllers\WorkspaceCategoryController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceExportController;
 use App\Http\Controllers\WorkspaceGraphController;
@@ -74,6 +75,12 @@ Route::middleware([
     Route::get('/workspaces/{workspace}/analytics', WorkspaceAnalyticsController::class)
         ->name('workspaces.analytics')
         ->scopeBindings();
+    Route::prefix('/workspaces/{workspace}/categories')->name('workspaces.categories.')->scopeBindings()->group(function () {
+        Route::get('/', [WorkspaceCategoryController::class, 'index'])->name('index');
+        Route::post('/', [WorkspaceCategoryController::class, 'store'])->name('store');
+        Route::put('/{category}', [WorkspaceCategoryController::class, 'update'])->name('update');
+        Route::delete('/{category}', [WorkspaceCategoryController::class, 'destroy'])->name('destroy');
+    });
     Route::get('/workspaces/{workspace}/graph', WorkspaceGraphController::class)
         ->name('workspaces.graph')
         ->scopeBindings();

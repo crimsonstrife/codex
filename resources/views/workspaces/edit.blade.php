@@ -237,6 +237,24 @@
                 </div>
             </div>
 
+            {{-- Categories card --}}
+            <div class="card shadow-sm mt-4">
+                <div class="card-header py-3">
+                    <h2 class="h6 fw-semibold mb-0">
+                        <i class="fas fa-layer-group me-2 text-body-secondary"></i>Categories
+                    </h2>
+                </div>
+                <div class="card-body p-4">
+                    <p class="small text-body-secondary mb-3">
+                        Manage category names, descriptions, starter suggestions, and the category set used by pages, scripts, and diagrams.
+                    </p>
+                    <a href="{{ route('workspaces.categories.index', $workspace) }}"
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-layer-group me-1"></i> Manage Categories
+                    </a>
+                </div>
+            </div>
+
             {{-- Analytics card --}}
             <div class="card shadow-sm mt-4">
                 <div class="card-header py-3">

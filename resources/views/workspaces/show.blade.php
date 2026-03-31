@@ -399,6 +399,9 @@
                                                     {{ $group['diagramCount'] }} {{ Str::plural('diagram', $group['diagramCount']) }},
                                                     {{ $group['scriptCount'] }} {{ Str::plural('script', $group['scriptCount']) }}
                                                 </p>
+                                                @if($category->description)
+                                                    <p class="small text-body-secondary mb-0 mt-2">{{ $category->description }}</p>
+                                                @endif
                                             </div>
                                         </div>
 

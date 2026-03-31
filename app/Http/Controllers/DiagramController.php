@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
 use App\Models\Diagram;
 use App\Models\Workspace;
+use App\Services\WorkspaceCategoryService;
 use App\Support\CodexRuntimeConfig;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,10 +15,7 @@ class DiagramController extends Controller
     {
         $this->authorize('create', Diagram::class);
         $drawioUrl = CodexRuntimeConfig::drawioUrl();
-        $categories = Category::where('workspace_id', $workspace->id)
-            ->orWhereNull('workspace_id')
-            ->orderBy('name')
-            ->get();
+        $categories = app(WorkspaceCategoryService::class)->availableForWorkspace($workspace);
 
         return view('diagrams.create', compact('workspace', 'drawioUrl', 'categories'));
     }
@@ -51,15 +48,18 @@ class DiagramController extends Controller
             'category_ids' => 'nullable|array',
             'category_ids.*' => ['uuid', Rule::exists('categories', 'id')->where(fn ($q) => $q->where('workspace_id', $workspace->id)->orWhereNull('workspace_id'))],
             'tags' => 'nullable|string',
+            ...app(WorkspaceCategoryService::class)->inlineCreationRules(),
         ]);
 
         $validated['workspace_id'] = $workspace->id;
         $validated['author_id'] = auth()->id();
 
+        $categoryIds = app(WorkspaceCategoryService::class)->resolveSelectedCategoryIds($workspace, $validated);
+
         $diagram = Diagram::create($validated);
 
-        if (! empty($validated['category_ids'])) {
-            $diagram->categories()->sync($validated['category_ids']);
+        if ($categoryIds !== []) {
+            $diagram->categories()->sync($categoryIds);
         }
 
         if (! empty($validated['tags'])) {
@@ -75,10 +75,7 @@ class DiagramController extends Controller
     {
         $this->authorize('update', $diagram);
         $drawioUrl = CodexRuntimeConfig::drawioUrl();
-        $categories = Category::where('workspace_id', $workspace->id)
-            ->orWhereNull('workspace_id')
-            ->orderBy('name')
-            ->get();
+        $categories = app(WorkspaceCategoryService::class)->availableForWorkspace($workspace);
 
         return view('diagrams.edit', compact('workspace', 'diagram', 'drawioUrl', 'categories'));
     }
@@ -95,11 +92,14 @@ class DiagramController extends Controller
             'category_ids' => 'nullable|array',
             'category_ids.*' => ['uuid', Rule::exists('categories', 'id')->where(fn ($q) => $q->where('workspace_id', $workspace->id)->orWhereNull('workspace_id'))],
             'tags' => 'nullable|string',
+            ...app(WorkspaceCategoryService::class)->inlineCreationRules(),
         ]);
+
+        $categoryIds = app(WorkspaceCategoryService::class)->resolveSelectedCategoryIds($workspace, $validated);
 
         $diagram->update($validated);
 
-        $diagram->categories()->sync($validated['category_ids'] ?? []);
+        $diagram->categories()->sync($categoryIds);
 
         $tagNames = [];
         if (! empty($validated['tags'])) {

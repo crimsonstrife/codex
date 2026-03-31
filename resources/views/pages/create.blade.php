@@ -158,23 +158,12 @@
                             </select>
                         </div>
 
-                        {{-- Categories --}}
-                        @if($categories->isNotEmpty())
-                            <div class="mb-3">
-                                <x-label value="{{ __('Categories') }}"/>
-                                <div class="d-flex flex-wrap gap-2 mt-1">
-                                    @foreach($categories as $cat)
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="checkbox" name="category_ids[]"
-                                                   id="cat_{{ $cat->id }}" value="{{ $cat->id }}"
-                                                {{ in_array($cat->id, old('category_ids', [])) ? 'checked' : '' }} />
-                                            <label class="form-check-label"
-                                                   for="cat_{{ $cat->id }}">{{ $cat->name }}</label>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
+                        @include('categories._selector', [
+                            'workspace' => $workspace,
+                            'categories' => $categories,
+                            'selectedCategoryIds' => [],
+                            'selectorIdPrefix' => 'page-create-category',
+                        ])
 
                         {{-- Tags --}}
                         <div class="mb-4">

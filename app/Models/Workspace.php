@@ -97,6 +97,11 @@ class Workspace extends Model
         return $this->hasMany(Page::class);
     }
 
+    public function categories(): HasMany
+    {
+        return $this->hasMany(Category::class);
+    }
+
     public function diagrams(): HasMany
     {
         return $this->hasMany(Diagram::class);

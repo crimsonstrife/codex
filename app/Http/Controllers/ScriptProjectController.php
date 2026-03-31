@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
 use App\Models\PageTemplate;
 use App\Models\ScriptProject;
 use App\Models\ScriptRevision;
 use App\Models\Workspace;
 use App\Services\ScriptDocumentService;
 use App\Services\ScriptRenderService;
+use App\Services\WorkspaceCategoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -21,6 +21,7 @@ class ScriptProjectController extends Controller
     public function __construct(
         private readonly ScriptDocumentService $documentService,
         private readonly ScriptRenderService $renderService,
+        private readonly WorkspaceCategoryService $categoryService,
     ) {}
 
     public function create(Workspace $workspace): View
@@ -28,10 +29,7 @@ class ScriptProjectController extends Controller
         $this->authorize('view', $workspace);
         $this->ensureUserCanCreateScript($workspace);
 
-        $categories = Category::where('workspace_id', $workspace->id)
-            ->orWhereNull('workspace_id')
-            ->orderBy('name')
-            ->get();
+        $categories = $this->categoryService->availableForWorkspace($workspace);
 
         return view('scripts.create', compact('workspace', 'categories'));
     }
@@ -53,7 +51,10 @@ class ScriptProjectController extends Controller
                     fn ($query) => $query->where('workspace_id', $workspace->id)->orWhereNull('workspace_id')
                 ),
             ],
+            ...$this->categoryService->inlineCreationRules(),
         ]);
+
+        $categoryIds = $this->categoryService->resolveSelectedCategoryIds($workspace, $validated);
 
         $scriptProject = ScriptProject::create([
             ...$validated,
@@ -63,7 +64,7 @@ class ScriptProjectController extends Controller
             'document' => $this->documentService->defaultDocument(),
         ]);
 
-        $scriptProject->categories()->sync($validated['category_ids'] ?? []);
+        $scriptProject->categories()->sync($categoryIds);
 
         $this->createRevision($scriptProject, 'Initial draft');
 
@@ -104,10 +105,7 @@ class ScriptProjectController extends Controller
         $this->authorize('update', $script);
         $script->load(['categories', 'characters', 'locations']);
 
-        $categories = Category::where('workspace_id', $workspace->id)
-            ->orWhereNull('workspace_id')
-            ->orderBy('name')
-            ->get();
+        $categories = $this->categoryService->availableForWorkspace($workspace);
 
         return view('scripts.edit', compact('workspace', 'script', 'categories'));
     }
@@ -128,9 +126,12 @@ class ScriptProjectController extends Controller
                     fn ($query) => $query->where('workspace_id', $workspace->id)->orWhereNull('workspace_id')
                 ),
             ],
+            ...$this->categoryService->inlineCreationRules(),
             'document' => 'required|string',
             'change_summary' => 'nullable|string|max:255',
         ]);
+
+        $categoryIds = $this->categoryService->resolveSelectedCategoryIds($workspace, $validated);
 
         $document = $this->documentService->parse($validated['document'], $script);
 
@@ -142,7 +143,7 @@ class ScriptProjectController extends Controller
             'document' => $document,
         ]);
 
-        $script->categories()->sync($validated['category_ids'] ?? []);
+        $script->categories()->sync($categoryIds);
 
         $this->createRevision($script, $validated['change_summary'] ?? null);
 

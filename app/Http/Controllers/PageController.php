@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Mail\PageUpdatedMail;
-use App\Models\Category;
 use App\Models\CodexNotification;
 use App\Models\Page;
 use App\Models\PageLink;
@@ -16,6 +15,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Services\DiagramEmbedRenderer;
 use App\Services\PageLinkResolver;
+use App\Services\WorkspaceCategoryService;
 use App\Support\CodexRuntimeConfig;
 use App\Support\PageNavigationResolver;
 use Illuminate\Http\JsonResponse;
@@ -36,10 +36,7 @@ class PageController extends Controller
     {
         $this->authorize('create', Page::class);
         $defaultContentType = CodexRuntimeConfig::defaultPageContentType();
-        $categories = Category::where('workspace_id', $workspace->id)
-            ->orWhereNull('workspace_id')
-            ->orderBy('name')
-            ->get();
+        $categories = app(WorkspaceCategoryService::class)->availableForWorkspace($workspace);
         $pages = $workspace->pages()->orderBy('title')->get(['id', 'title', 'parent_id']);
         $templates = PageTemplate::where(function ($q) use ($workspace) {
             $q->where('workspace_id', $workspace->id)->orWhereNull('workspace_id');
@@ -148,16 +145,19 @@ class PageController extends Controller
                 }),
             ],
             'tags' => 'nullable|string',
+            ...app(WorkspaceCategoryService::class)->inlineCreationRules(),
         ]);
 
         $validated['workspace_id'] = $workspace->id;
         $validated['author_id'] = auth()->id();
         $validated['content_type'] ??= CodexRuntimeConfig::defaultPageContentType();
 
+        $categoryIds = app(WorkspaceCategoryService::class)->resolveSelectedCategoryIds($workspace, $validated);
+
         $page = Page::create($validated);
 
-        if (! empty($validated['category_ids'])) {
-            $page->categories()->sync($validated['category_ids']);
+        if ($categoryIds !== []) {
+            $page->categories()->sync($categoryIds);
         }
 
         if (! empty($validated['tags'])) {
@@ -230,10 +230,7 @@ class PageController extends Controller
             $page->acquireLock(auth()->user());
         }
 
-        $categories = Category::where('workspace_id', $workspace->id)
-            ->orWhereNull('workspace_id')
-            ->orderBy('name')
-            ->get();
+        $categories = app(WorkspaceCategoryService::class)->availableForWorkspace($workspace);
         $pages = $workspace->pages()
             ->where('id', '!=', $page->id)
             ->orderBy('title')
@@ -306,14 +303,17 @@ class PageController extends Controller
                 }),
             ],
             'tags' => 'nullable|string',
+            ...app(WorkspaceCategoryService::class)->inlineCreationRules(),
         ]);
+
+        $categoryIds = app(WorkspaceCategoryService::class)->resolveSelectedCategoryIds($workspace, $validated);
 
         $lastRevision = $page->revisions()->latest()->first();
         $revNum = $lastRevision ? $lastRevision->revision_number + 1 : 1;
 
         $page->update($validated);
 
-        $page->categories()->sync($validated['category_ids'] ?? []);
+        $page->categories()->sync($categoryIds);
 
         $tagNames = [];
         if (! empty($validated['tags'])) {
