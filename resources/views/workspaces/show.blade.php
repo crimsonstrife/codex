@@ -12,6 +12,9 @@
                 <a href="{{ route('workspaces.pages.create', $workspace) }}" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus me-1"></i> {{ __('New Page') }}
                 </a>
+                <a href="{{ route('workspaces.scripts.create', $workspace) }}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-scroll me-1"></i> {{ __('New Script') }}
+                </a>
                 <a href="{{ route('workspaces.diagrams.create', $workspace) }}" class="btn btn-success btn-sm">
                     <i class="fas fa-plus me-1"></i> {{ __('New Diagram') }}
                 </a>
@@ -61,6 +64,31 @@
                             @else
                                 @include('pages._page_tree', ['pages' => $pages, 'workspace' => $workspace, 'depth' => 0, 'sortable' => auth()->user()?->can('update', $workspace)])
                             @endif
+                        </div>
+
+                        {{-- Scripts --}}
+                        <div class="card-header py-2 border-top d-flex align-items-center justify-content-between">
+                            <span class="small fw-semibold text-uppercase text-body-secondary">Scripts</span>
+                            <a href="{{ route('workspaces.scripts.create', $workspace) }}"
+                               class="small text-decoration-none text-body-secondary">New</a>
+                        </div>
+                        <div class="list-group list-group-flush">
+                            @forelse($scripts as $script)
+                            <a href="{{ route('workspaces.scripts.show', [$workspace, $script]) }}"
+                               class="list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-2 py-2">
+                                <div class="overflow-hidden">
+                                    <div class="small fw-medium text-truncate">{{ $script->title }}</div>
+                                    <div class="text-body-secondary" style="font-size:0.68rem;">
+                                        {{ ucfirst($script->status) }} • {{ $script->updated_at->diffForHumans() }}
+                                    </div>
+                                </div>
+                                <span class="badge bg-warning-subtle text-warning-emphasis">
+                                    {{ $script->binder_links_count }}
+                                </span>
+                            </a>
+                            @empty
+                            <div class="list-group-item text-body-secondary small">No scripts yet.</div>
+                            @endforelse
                         </div>
 
                         {{-- Diagrams --}}

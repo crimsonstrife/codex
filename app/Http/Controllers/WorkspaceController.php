@@ -38,6 +38,10 @@ class WorkspaceController extends Controller
             ->get();
 
         $pages = $allPages->toTree();
+        $scripts = $workspace->scripts()
+            ->withCount(['binderLinks', 'entities'])
+            ->latest('updated_at')
+            ->get();
         $diagrams = $workspace->diagrams()->latest('updated_at')->get();
 
         $pageIds = $workspace->pages()->pluck('id');
@@ -74,7 +78,7 @@ class WorkspaceController extends Controller
         }
 
         return view('workspaces.show', compact(
-            'workspace', 'pages', 'allPages', 'diagrams', 'activities',
+            'workspace', 'pages', 'allPages', 'scripts', 'diagrams', 'activities',
             'membersPreview', 'memberCount', 'pinnedPages', 'homePage',
             'homePageChildPages', 'homePagePrevious', 'homePageNext'
         ));

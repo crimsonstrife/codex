@@ -11,6 +11,7 @@ use App\Models\PageRevision;
 use App\Models\PageTemplate;
 use App\Models\PageView;
 use App\Models\PageWatch;
+use App\Models\ScriptProjectPageLink;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\DiagramEmbedRenderer;
@@ -101,6 +102,14 @@ class PageController extends Controller
             ])
             ->get();
 
+        $linkedScripts = ScriptProjectPageLink::where('page_id', $page->id)
+            ->with([
+                'scriptProject' => fn ($query) => $query
+                    ->select('id', 'workspace_id', 'title', 'slug', 'status', 'logline', 'updated_at'),
+            ])
+            ->orderBy('position')
+            ->get();
+
         // Broken outgoing wiki-link refs (referenced but unresolvable at last save)
         $brokenOutgoingLinks = [];
         if (str_contains($page->content ?? '', '[[')) {
@@ -113,7 +122,7 @@ class PageController extends Controller
         return view('pages.show', compact(
             'workspace', 'page', 'breadcrumbs', 'transferableWorkspaces',
             'incomingLinks', 'brokenOutgoingLinks', 'pageTree',
-            'childPages', 'previousPage', 'nextPage'
+            'childPages', 'previousPage', 'nextPage', 'linkedScripts'
         ));
     }
 
