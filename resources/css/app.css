@@ -123,3 +123,7 @@
 .view-force-hidden {
     display: none !important;
 }
+
+.list-group-flush {
+    overflow: auto;
+}

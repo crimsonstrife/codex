@@ -1,11 +1,50 @@
 import './bootstrap';
+import './script-editor';
 import './toc';
 import './workspace-view-toggle';
 import { initPageTreeSort, initPageTreeCollapse } from './page-tree-sort';
-document.addEventListener('DOMContentLoaded', () => {
+
+let mermaidPromise;
+
+function loadMermaid() {
+    if (!mermaidPromise) {
+        mermaidPromise = import('mermaid').then(({ default: mermaid }) => {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+                securityLevel: 'strict',
+                flowchart: { useMaxWidth: true, htmlLabels: true },
+                mindmap: { useMaxWidth: true },
+            });
+
+            window.mermaid = mermaid;
+
+            return mermaid;
+        });
+    }
+
+    return mermaidPromise;
+}
+
+async function initMermaidDiagrams(root = document) {
+    const nodes = [...root.querySelectorAll('.mermaid')];
+    if (!nodes.length) {
+        return null;
+    }
+
+    const mermaid = await loadMermaid();
+    await mermaid.run({ nodes });
+
+    return mermaid;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
     initPageTreeCollapse(); // feat 2.5 — must run before sort so subtrees exist
-    initPageTreeSort();     // feat 5.2
     initDrawioEmbeds();
+    await Promise.allSettled([
+        initPageTreeSort(),    // feat 5.2
+        initMermaidDiagrams(),
+    ]);
 });
 
 // Bootstrap (CSS + JS)
@@ -18,19 +57,8 @@ window.bootstrap = bootstrap;
 // FontAwesome Free
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
-import mermaid from 'mermaid';
-
-// Auto-render any .mermaid elements on page load
-mermaid.initialize({
-    startOnLoad: true,
-    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
-    securityLevel: 'strict',
-    flowchart: { useMaxWidth: true, htmlLabels: true },
-    mindmap: { useMaxWidth: true },
-});
-
-// Expose globally so Blade views can call mermaid.render() for live previews
-window.mermaid = mermaid;
+window.loadMermaid = loadMermaid;
+window.initMermaidDiagrams = initMermaidDiagrams;
 
 function initDrawioEmbeds(root = document) {
     root.querySelectorAll('[data-codex-drawio]').forEach((container) => {

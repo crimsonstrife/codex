@@ -1,13 +1,17 @@
 <x-app-layout>
     <x-slot name="header">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item">
-                    <a href="{{ route('workspaces.show', $workspace) }}">{{ $workspace->name }}</a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">Page Templates</li>
-            </ol>
-        </nav>
+        <div class="d-flex flex-column gap-3">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="{{ route('workspaces.show', $workspace) }}">{{ $workspace->name }}</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Page Templates</li>
+                </ol>
+            </nav>
+
+            @include('workspaces._header_actions')
+        </div>
     </x-slot>
 
     <div class="py-4">

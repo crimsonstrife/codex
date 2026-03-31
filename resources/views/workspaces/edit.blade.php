@@ -1,13 +1,17 @@
 <x-app-layout>
     <x-slot name="header">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item">
-                    <a href="{{ route('workspaces.show', $workspace) }}">{{ $workspace->name }}</a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">Settings</li>
-            </ol>
-        </nav>
+        <div class="d-flex flex-column gap-3">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="{{ route('workspaces.show', $workspace) }}">{{ $workspace->name }}</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Settings</li>
+                </ol>
+            </nav>
+
+            @include('workspaces._header_actions')
+        </div>
     </x-slot>
 
     <div class="py-4">
@@ -229,6 +233,24 @@
                     <a href="{{ route('workspaces.templates.index', $workspace) }}"
                        class="btn btn-outline-secondary btn-sm">
                         <i class="fas fa-folder-open me-1"></i> Manage Templates
+                    </a>
+                </div>
+            </div>
+
+            {{-- Categories card --}}
+            <div class="card shadow-sm mt-4">
+                <div class="card-header py-3">
+                    <h2 class="h6 fw-semibold mb-0">
+                        <i class="fas fa-layer-group me-2 text-body-secondary"></i>Categories
+                    </h2>
+                </div>
+                <div class="card-body p-4">
+                    <p class="small text-body-secondary mb-3">
+                        Manage category names, descriptions, starter suggestions, and the category set used by pages, scripts, and diagrams.
+                    </p>
+                    <a href="{{ route('workspaces.categories.index', $workspace) }}"
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-layer-group me-1"></i> Manage Categories
                     </a>
                 </div>
             </div>

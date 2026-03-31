@@ -1,11 +1,15 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('workspaces.diagrams.show', [$workspace, $diagram]) }}"
-               class="small text-primary text-decoration-none">
-                <i class="fas fa-arrow-left me-1"></i> View
-            </a>
-            <h2 class="h5 mb-0">Edit: {{ $diagram->title }}</h2>
+        <div class="d-flex flex-column gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ route('workspaces.diagrams.show', [$workspace, $diagram]) }}"
+                   class="small text-primary text-decoration-none">
+                    <i class="fas fa-arrow-left me-1"></i> View
+                </a>
+                <h2 class="h5 mb-0">Edit: {{ $diagram->title }}</h2>
+            </div>
+
+            @include('workspaces._header_actions')
         </div>
     </x-slot>
 
@@ -42,21 +46,12 @@
                                         <label class="form-check-label" for="is_published">{{ __('Published') }}</label>
                                     </div>
                                 </div>
-                                @if($categories->isNotEmpty())
-                                <div class="mb-3">
-                                    <x-label value="{{ __('Categories') }}" />
-                                    <div class="d-flex flex-wrap gap-2 mt-1">
-                                        @foreach($categories as $cat)
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="checkbox" name="category_ids[]"
-                                                   id="cat_{{ $cat->id }}" value="{{ $cat->id }}"
-                                                   {{ in_array($cat->id, old('category_ids', $diagram->categories->pluck('id')->toArray())) ? 'checked' : '' }} />
-                                            <label class="form-check-label" for="cat_{{ $cat->id }}">{{ $cat->name }}</label>
-                                        </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                                @endif
+                                @include('categories._selector', [
+                                    'workspace' => $workspace,
+                                    'categories' => $categories,
+                                    'selectedCategoryIds' => $diagram->categories->pluck('id')->all(),
+                                    'selectorIdPrefix' => 'diagram-edit-category',
+                                ])
                                 <div class="mb-3">
                                     <x-label for="tags" value="{{ __('Tags') }}" />
                                     <x-input id="tags" name="tags" type="text" class="mt-1 block w-full"
@@ -139,7 +134,11 @@
                 return;
             }
             try {
-                const { svg } = await window.mermaid.render('edit-preview-graph', source);
+                const mermaid = await window.loadMermaid?.();
+                if (!mermaid) {
+                    throw new Error('Mermaid preview is unavailable right now.');
+                }
+                const { svg } = await mermaid.render('edit-preview-graph', source);
                 container.innerHTML = svg;
             } catch (e) {
                 container.innerHTML = `<pre class="text-danger small text-start">${e.message}</pre>`;

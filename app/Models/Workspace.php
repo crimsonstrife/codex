@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\PagePin;
 use App\Traits\IsPermissible;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -27,6 +26,7 @@ class Workspace extends Model
     use SoftDeletes;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -68,9 +68,6 @@ class Workspace extends Model
     /**
      * Scope: workspaces visible to the given user.
      * Matches public workspaces, workspaces the user owns, and workspaces they are a member of.
-     *
-     * @param  Builder  $query
-     * @param  \App\Models\User|null  $user
      */
     public function scopeAccessibleBy(Builder $query, ?User $user): Builder
     {
@@ -78,7 +75,7 @@ class Workspace extends Model
             $q->where('is_public', true);
             if ($user) {
                 $q->orWhere('owner_id', $user->id)
-                  ->orWhereHas('members', fn (Builder $m) => $m->where('user_id', $user->id));
+                    ->orWhereHas('members', fn (Builder $m) => $m->where('user_id', $user->id));
             }
         });
     }
@@ -100,9 +97,19 @@ class Workspace extends Model
         return $this->hasMany(Page::class);
     }
 
+    public function categories(): HasMany
+    {
+        return $this->hasMany(Category::class);
+    }
+
     public function diagrams(): HasMany
     {
         return $this->hasMany(Diagram::class);
+    }
+
+    public function scripts(): HasMany
+    {
+        return $this->hasMany(ScriptProject::class);
     }
 
     public function pinnedPages(): BelongsToMany

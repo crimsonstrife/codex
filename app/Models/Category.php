@@ -22,6 +22,7 @@ class Category extends Model
 
     protected $fillable = [
         'name',
+        'description',
         'slug',
         'color',
         'workspace_id',
@@ -55,5 +56,10 @@ class Category extends Model
     public function diagrams(): MorphToMany
     {
         return $this->morphedByMany(Diagram::class, 'categorizable');
+    }
+
+    public function scripts(): MorphToMany
+    {
+        return $this->morphedByMany(ScriptProject::class, 'categorizable');
     }
 }

@@ -33,12 +33,12 @@ class Page extends Model implements HasMedia
     use InteractsWithMedia;
     use IsPermissible;
     use LogsActivity;
+
     // NodeTrait and Searchable both define usesSoftDelete(); keep NodeTrait's
     // version since the nestedset tree operations depend on its implementation.
     use NodeTrait, Searchable {
         NodeTrait::usesSoftDelete insteadof Searchable;
     }
-
     use SoftDeletes;
 
     protected $keyType = 'string';
@@ -167,6 +167,19 @@ class Page extends Model implements HasMedia
     public function incomingLinks(): HasMany
     {
         return $this->hasMany(PageLink::class, 'target_page_id');
+    }
+
+    public function scriptProjectLinks(): HasMany
+    {
+        return $this->hasMany(ScriptProjectPageLink::class)->orderBy('position');
+    }
+
+    public function scriptProjects(): BelongsToMany
+    {
+        return $this->belongsToMany(ScriptProject::class, 'script_project_page_links')
+            ->withPivot(['id', 'role', 'position'])
+            ->withTimestamps()
+            ->orderByPivot('position');
     }
 
     public function diagramEmbeds(): HasMany

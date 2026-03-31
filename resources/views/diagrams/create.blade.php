@@ -1,8 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="h5 mb-0">
-            New Diagram in <span class="text-primary">{{ $workspace->name }}</span>
-        </h2>
+        <div class="d-flex flex-column gap-3">
+            <h2 class="h5 mb-0">
+                New Diagram in <span class="text-primary">{{ $workspace->name }}</span>
+            </h2>
+
+            @include('workspaces._header_actions')
+        </div>
     </x-slot>
 
     <div class="py-4">
@@ -48,21 +52,12 @@
                                         <label class="form-check-label" for="is_published">{{ __('Publish immediately') }}</label>
                                     </div>
                                 </div>
-                                @if($categories->isNotEmpty())
-                                <div class="mb-3">
-                                    <x-label value="{{ __('Categories') }}" />
-                                    <div class="d-flex flex-wrap gap-2 mt-1">
-                                        @foreach($categories as $cat)
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="checkbox" name="category_ids[]"
-                                                   id="cat_{{ $cat->id }}" value="{{ $cat->id }}"
-                                                   {{ in_array($cat->id, old('category_ids', [])) ? 'checked' : '' }} />
-                                            <label class="form-check-label" for="cat_{{ $cat->id }}">{{ $cat->name }}</label>
-                                        </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                                @endif
+                                @include('categories._selector', [
+                                    'workspace' => $workspace,
+                                    'categories' => $categories,
+                                    'selectedCategoryIds' => [],
+                                    'selectorIdPrefix' => 'diagram-create-category',
+                                ])
                                 <div class="mb-3">
                                     <x-label for="tags" value="{{ __('Tags') }}" />
                                     <x-input id="tags" name="tags" type="text" class="mt-1 block w-full"
@@ -152,7 +147,11 @@
                 return;
             }
             try {
-                const { svg } = await window.mermaid.render('preview-graph', source);
+                const mermaid = await window.loadMermaid?.();
+                if (!mermaid) {
+                    throw new Error('Mermaid preview is unavailable right now.');
+                }
+                const { svg } = await mermaid.render('preview-graph', source);
                 container.innerHTML = svg;
             } catch (e) {
                 container.innerHTML = `<pre class="text-danger small text-start">${e.message}</pre>`;
