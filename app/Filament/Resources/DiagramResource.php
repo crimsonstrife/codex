@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\DiagramResource\Pages;
 use App\Models\Diagram;
+use App\Services\DiagramDeletionGuard;
 use Filament\Actions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -16,7 +17,6 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
-use Illuminate\Support\Str;
 
 class DiagramResource extends Resource
 {
@@ -126,16 +126,16 @@ class DiagramResource extends Resource
     {
         return Actions\DeleteAction::make()
             ->before(function (Actions\DeleteAction $action, Diagram $record): void {
-                $embedCount = $record->pageEmbeds()->count();
+                $guard = app(DiagramDeletionGuard::class);
 
-                if ($embedCount < 1) {
+                if ($guard->canDelete($record)) {
                     return;
                 }
 
                 Notification::make()
                     ->danger()
                     ->title('Diagram is still embedded')
-                    ->body('Remove it from '.$embedCount.' '.Str::plural('page', $embedCount).' before deleting it.')
+                    ->body($guard->blockingMessage($record))
                     ->persistent()
                     ->send();
 
@@ -147,8 +147,9 @@ class DiagramResource extends Resource
     {
         return Actions\DeleteBulkAction::make()
             ->before(function (Actions\DeleteBulkAction $action, EloquentCollection $records): void {
+                $guard = app(DiagramDeletionGuard::class);
                 $blockedCount = $records
-                    ->filter(fn (Diagram $record): bool => $record->pageEmbeds()->exists())
+                    ->filter(fn (Diagram $record): bool => ! $guard->canDelete($record))
                     ->count();
 
                 if ($blockedCount < 1) {

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Diagram;
 use App\Models\Page;
 use App\Models\PageDiagramEmbed;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Support\CodexRuntimeConfig;
 use Illuminate\Support\Facades\Gate;
@@ -17,7 +18,7 @@ class DiagramEmbedRenderer
 
     private const string BLOCK_PATTERN = '/<p>(?:\s|&nbsp;)*\{\{\s*diagram\s*:\s*('.self::UUID_PATTERN.')\s*}}(?:\s|&nbsp;)*<\/p>/iu';
 
-    public function render(string $content, Workspace $workspace, string $variant = 'web'): string
+    public function render(string $content, Workspace $workspace, string $variant = 'web', ?User $viewer = null): string
     {
         $ids = $this->extractIds($content);
 
@@ -32,7 +33,7 @@ class DiagramEmbedRenderer
             ->get()
             ->keyBy(static fn (Diagram $diagram): string => strtolower($diagram->id));
 
-        $viewer = auth()->user();
+        $viewer ??= auth()->user();
         $drawioUrl = CodexRuntimeConfig::drawioUrl();
 
         $renderMatch = static function (array $match) use ($diagrams, $drawioUrl, $variant, $viewer, $workspace): string {

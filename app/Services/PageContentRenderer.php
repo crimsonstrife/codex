@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Models\Workspace;
 use Spatie\LaravelMarkdown\MarkdownRenderer;
 
@@ -18,6 +19,7 @@ class PageContentRenderer
         string $contentType,
         Workspace $workspace,
         string $variant = 'web',
+        ?User $viewer = null,
     ): string {
         $rawContent = $content ?? '';
 
@@ -27,6 +29,6 @@ class PageContentRenderer
 
         $rendered = $this->pageLinkResolver->render($rendered, $workspace);
 
-        return $this->diagramEmbedRenderer->render($rendered, $workspace, $variant);
+        return $this->diagramEmbedRenderer->render($rendered, $workspace, $variant, $viewer);
     }
 }

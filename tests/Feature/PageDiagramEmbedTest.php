@@ -6,6 +6,7 @@ use App\Models\Diagram;
 use App\Models\Page;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\DiagramDeletionGuard;
 use App\Services\DiagramEmbedRenderer;
 use App\Services\PageContentRenderer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -82,6 +83,7 @@ class PageDiagramEmbedTest extends TestCase
             ->assertOk()
             ->assertSee('System Layout')
             ->assertSee('data-codex-drawio=', false)
+            ->assertSee('data-codex-drawio="&lt;mxfile&gt;&lt;diagram&gt;test&lt;/diagram&gt;&lt;/mxfile&gt;"', false)
             ->assertSee('data-codex-drawio-url=', false)
             ->assertDontSee('{{diagram:', false);
     }
@@ -116,6 +118,29 @@ class PageDiagramEmbedTest extends TestCase
 
         $this->assertStringContainsString('Launch Checklist', $rendered);
         $this->assertStringContainsString('Open this draw.io diagram in Codex to view it interactively.', $rendered);
+        $this->assertStringNotContainsString('{{diagram:', $rendered);
+    }
+
+    public function test_renderer_accepts_an_explicit_viewer_without_auth_state(): void
+    {
+        $owner = User::factory()->withPersonalTeam()->create();
+        $workspace = $this->createWorkspace($owner, 'CLI Export');
+        $diagram = $this->createDiagram($workspace, $owner, [
+            'title' => 'Explicit Viewer Diagram',
+            'diagram_type' => 'mermaid',
+            'diagram_data' => "graph TD\nA[Caller] --> B[Viewer]",
+        ]);
+
+        $rendered = app(PageContentRenderer::class)->render(
+            '{{diagram:'.$diagram->id.'}}',
+            'markdown',
+            $workspace,
+            'web',
+            $owner,
+        );
+
+        $this->assertStringContainsString('Explicit Viewer Diagram', $rendered);
+        $this->assertStringContainsString('graph TD', $rendered);
         $this->assertStringNotContainsString('{{diagram:', $rendered);
     }
 
@@ -210,7 +235,7 @@ class PageDiagramEmbedTest extends TestCase
         ]);
     }
 
-    public function test_embedded_diagram_cannot_be_deleted_until_removed_from_pages(): void
+    public function test_embedded_diagram_delete_guard_tracks_when_deletion_is_blocked(): void
     {
         $owner = User::factory()->withPersonalTeam()->create();
         $workspace = $this->createWorkspace($owner, 'Docs');
@@ -223,8 +248,13 @@ class PageDiagramEmbedTest extends TestCase
 
         app(DiagramEmbedRenderer::class)->sync($page);
 
-        $this->assertFalse($diagram->fresh()->delete());
-        $this->assertDatabaseHas('diagrams', ['id' => $diagram->id]);
+        $guard = app(DiagramDeletionGuard::class);
+
+        $this->assertFalse($guard->canDelete($diagram->fresh()));
+        $this->assertSame(
+            'Remove it from 1 page before deleting it.',
+            $guard->blockingMessage($diagram->fresh()),
+        );
 
         $this->actingAs($owner)
             ->put(route('workspaces.pages.update', [$workspace, $page]), [
@@ -234,8 +264,7 @@ class PageDiagramEmbedTest extends TestCase
             ])
             ->assertRedirect(route('workspaces.pages.show', [$workspace, $page]));
 
-        $this->assertTrue((bool) $diagram->fresh()->delete());
-        $this->assertSoftDeleted('diagrams', ['id' => $diagram->id]);
+        $this->assertTrue($guard->canDelete($diagram->fresh()));
     }
 
     private function createWorkspace(User $owner, string $name): Workspace

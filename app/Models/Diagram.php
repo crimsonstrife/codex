@@ -57,11 +57,6 @@ class Diagram extends Model
         static::creating(static function ($model) {
             $model->id = Str::uuid();
         });
-        static::deleting(static function (Diagram $diagram) {
-            if ($diagram->pageEmbeds()->exists()) {
-                return false;
-            }
-        });
     }
 
     public function getSlugOptions(): SlugOptions

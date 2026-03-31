@@ -17,7 +17,7 @@
         @else
             <div id="{{ $drawioEmbedId }}"
                  class="{{ $surfaceClass }} codex-drawio-embed"
-                 data-codex-drawio="{{ $diagram->diagram_data }}"
+                 data-codex-drawio="{!! e($diagram->diagram_data) !!}"
                  data-codex-drawio-url="{{ $drawioUrl }}"
                  @if($surfaceStyle) style="{{ $surfaceStyle }}" @endif></div>
         @endif
