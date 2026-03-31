@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -26,6 +28,7 @@ class Diagram extends Model
     use SoftDeletes;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -78,11 +81,22 @@ class Diagram extends Model
         return $this->morphToMany(Category::class, 'categorizable');
     }
 
+    public function pageEmbeds(): HasMany
+    {
+        return $this->hasMany(PageDiagramEmbed::class);
+    }
+
+    public function embeddedPages(): BelongsToMany
+    {
+        return $this->belongsToMany(Page::class, 'page_diagram_embeds')
+            ->withTimestamps();
+    }
+
     public function toSearchableArray(): array
     {
         return [
-            'id'          => $this->id,
-            'title'       => $this->title . ' ' . $this->title, // weight title 2×
+            'id' => $this->id,
+            'title' => $this->title.' '.$this->title, // weight title 2×
             'description' => $this->description ?? '',
         ];
     }

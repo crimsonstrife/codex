@@ -138,6 +138,10 @@
 
                             {{-- Hidden field that always holds the actual content to submit --}}
                             <input type="hidden" id="content" name="content" value="{{ old('content') }}"/>
+                            <div class="form-text">
+                                Rich text pages can use the <strong>Diagram</strong> toolbar button.
+                                Markdown pages can embed diagrams with <code>@{{diagram:UUID}}</code> on its own line.
+                            </div>
                             <x-input-error for="content" class="mt-1"/>
                         </div>
 
@@ -210,9 +214,10 @@
                             'mentions-lite': '/tiny-plugins/mentions-lite/plugin.js',
                             'callouts':      '/tiny-plugins/callouts/plugin.js',
                             'wiki-links':    '/tiny-plugins/wiki-links/plugin.js',
+                            'diagram-embeds': '/tiny-plugins/diagram-embeds/plugin.js',
                         },
-                        plugins: 'link lists code image table blockquote autolink hr mentions-lite callouts wiki-links',
-                        toolbar: 'undo redo | styles | bold italic underline | link image | bullist numlist | blockquote | alignleft aligncenter alignright | table | callout | wikiLink | mentionUser | removeformat | code',
+                        plugins: 'link lists code image table blockquote autolink hr mentions-lite callouts wiki-links diagram-embeds',
+                        toolbar: 'undo redo | styles | bold italic underline | link image | bullist numlist | blockquote | alignleft aligncenter alignright | table | callout | wikiLink diagramEmbed | mentionUser | removeformat | code',
                         codexWorkspaceId: '{{ $workspace->id }}',
                     });
                     editor.init(richTextarea.value || '');

@@ -4,22 +4,28 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\DiagramResource\Pages;
 use App\Models\Diagram;
+use App\Services\DiagramDeletionGuard;
+use Filament\Actions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Actions;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class DiagramResource extends Resource
 {
     protected static ?string $model = Diagram::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-square-3-stack-3d';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Content';
+
     protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
@@ -46,9 +52,9 @@ class DiagramResource extends Resource
                     ->preload(),
                 Select::make('diagram_type')
                     ->options([
-                        'mermaid'   => '🧩 Mermaid — Native (no external service)',
-                        'drawio'    => '🎨 draw.io — Visual editor',
-                        'mindmap'   => '🧠 Mind Map — Native (Mermaid)',
+                        'mermaid' => '🧩 Mermaid — Native (no external service)',
+                        'drawio' => '🎨 draw.io — Visual editor',
+                        'mindmap' => '🧠 Mind Map — Native (Mermaid)',
                         'flowchart' => '🔀 Flowchart — Native (Mermaid)',
                     ])
                     ->default('mermaid')
@@ -72,12 +78,17 @@ class DiagramResource extends Resource
                 Tables\Columns\TextColumn::make('diagram_type')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'mermaid'   => 'success',
-                        'drawio'    => 'primary',
-                        'mindmap'   => 'info',
+                        'mermaid' => 'success',
+                        'drawio' => 'primary',
+                        'mindmap' => 'info',
                         'flowchart' => 'warning',
-                        default     => 'gray',
+                        default => 'gray',
                     }),
+                Tables\Columns\TextColumn::make('page_embeds_count')
+                    ->counts('pageEmbeds')
+                    ->label('Embedded In')
+                    ->badge()
+                    ->color('gray'),
                 Tables\Columns\IconColumn::make('is_published')->boolean()->label('Published'),
                 Tables\Columns\TextColumn::make('updated_at')->dateTime()->sortable(),
             ])
@@ -88,11 +99,11 @@ class DiagramResource extends Resource
             ])
             ->actions([
                 Actions\EditAction::make(),
-                Actions\DeleteAction::make(),
+                static::getDeleteAction(),
             ])
             ->bulkActions([
                 Actions\BulkActionGroup::make([
-                    Actions\DeleteBulkAction::make(),
+                    static::getDeleteBulkAction(),
                 ]),
             ]);
     }
@@ -105,9 +116,54 @@ class DiagramResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListDiagrams::route('/'),
+            'index' => Pages\ListDiagrams::route('/'),
             'create' => Pages\CreateDiagram::route('/create'),
-            'edit'   => Pages\EditDiagram::route('/{record}/edit'),
+            'edit' => Pages\EditDiagram::route('/{record}/edit'),
         ];
+    }
+
+    public static function getDeleteAction(): Actions\DeleteAction
+    {
+        return Actions\DeleteAction::make()
+            ->before(function (Actions\DeleteAction $action, Diagram $record): void {
+                $guard = app(DiagramDeletionGuard::class);
+
+                if ($guard->canDelete($record)) {
+                    return;
+                }
+
+                Notification::make()
+                    ->danger()
+                    ->title('Diagram is still embedded')
+                    ->body($guard->blockingMessage($record))
+                    ->persistent()
+                    ->send();
+
+                $action->halt();
+            });
+    }
+
+    public static function getDeleteBulkAction(): Actions\DeleteBulkAction
+    {
+        return Actions\DeleteBulkAction::make()
+            ->before(function (Actions\DeleteBulkAction $action, EloquentCollection $records): void {
+                $guard = app(DiagramDeletionGuard::class);
+                $blockedCount = $records
+                    ->filter(fn (Diagram $record): bool => ! $guard->canDelete($record))
+                    ->count();
+
+                if ($blockedCount < 1) {
+                    return;
+                }
+
+                Notification::make()
+                    ->danger()
+                    ->title('Some diagrams are still embedded')
+                    ->body('Remove embedded diagrams from pages before bulk deleting them.')
+                    ->persistent()
+                    ->send();
+
+                $action->halt();
+            });
     }
 }

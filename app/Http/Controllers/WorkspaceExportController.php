@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Page;
 use App\Models\Workspace;
-use App\Services\PageLinkResolver;
+use App\Services\PageContentRenderer;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
-use Spatie\LaravelMarkdown\MarkdownRenderer;
 use ZipArchive;
 
 /**
@@ -44,26 +43,24 @@ class WorkspaceExportController extends Controller
             ->get();
 
         $pagesById = $pages->keyBy('id');
-        $slugById  = $pages->pluck('slug', 'id');
+        $slugById = $pages->pluck('slug', 'id');
 
         // Build ZIP in a temp file, stream it back, then delete.
         $tmpFile = tempnam(sys_get_temp_dir(), 'codex-export-');
-        $zip     = new ZipArchive();
+        $zip = new ZipArchive;
         $zip->open($tmpFile, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
         $zip->addFromString('assets/export.css', $this->stylesheet());
         $zip->addFromString('index.html', $this->buildIndex($workspace, $pages));
 
-        $resolver = app(PageLinkResolver::class);
-
         foreach ($pages as $page) {
-            $html = $this->buildPage($page, $workspace, $resolver, $pagesById, $slugById);
-            $zip->addFromString('pages/' . $page->slug . '.html', $html);
+            $html = $this->buildPage($page, $workspace, $pagesById, $slugById);
+            $zip->addFromString('pages/'.$page->slug.'.html', $html);
         }
 
         $zip->close();
 
-        $filename = Str::slug($workspace->name) . '-' . now()->format('Y-m-d') . '.zip';
+        $filename = Str::slug($workspace->name).'-'.now()->format('Y-m-d').'.zip';
 
         return response()
             ->download($tmpFile, $filename, ['Content-Type' => 'application/zip'])
@@ -72,13 +69,13 @@ class WorkspaceExportController extends Controller
 
     private function buildIndex(Workspace $workspace, Collection $pages): string
     {
-        $name  = htmlspecialchars($workspace->name, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $desc  = $workspace->description
-            ? '<p class="description">' . htmlspecialchars($workspace->description, ENT_QUOTES | ENT_HTML5, 'UTF-8') . '</p>'
+        $name = htmlspecialchars($workspace->name, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $desc = $workspace->description
+            ? '<p class="description">'.htmlspecialchars($workspace->description, ENT_QUOTES | ENT_HTML5, 'UTF-8').'</p>'
             : '';
-        $date  = now()->toFormattedDateString();
+        $date = now()->toFormattedDateString();
         $count = $pages->count();
-        $tree  = $this->buildIndexTree($pages, null);
+        $tree = $this->buildIndexTree($pages, null);
 
         return <<<HTML
         <!DOCTYPE html>
@@ -110,8 +107,8 @@ class WorkspaceExportController extends Controller
         $html = '';
 
         foreach ($pages->where('parent_id', $parentId) as $page) {
-            $title    = htmlspecialchars($page->title, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $slug     = $page->slug;
+            $title = htmlspecialchars($page->title, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $slug = $page->slug;
             $children = $this->buildIndexTree($pages, $page->id);
 
             $html .= "<li><a href=\"pages/{$slug}.html\">{$title}</a>";
@@ -127,45 +124,43 @@ class WorkspaceExportController extends Controller
     private function buildPage(
         Page $page,
         Workspace $workspace,
-        PageLinkResolver $resolver,
         Collection $pagesById,
         Collection $slugById
     ): string {
-        $e = fn(string $s) => htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $e = fn (string $s) => htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        $title         = $e($page->title);
+        $title = $e($page->title);
         $workspaceName = $e($workspace->name);
-        $author        = $e($page->author?->name ?? 'Unknown');
-        $status        = $e(ucfirst($page->status ?? 'draft'));
-        $updated       = $page->updated_at->toFormattedDateString();
+        $author = $e($page->author?->name ?? 'Unknown');
+        $status = $e(ucfirst($page->status ?? 'draft'));
+        $updated = $page->updated_at->toFormattedDateString();
 
-        $rawContent = $page->content ?? '';
-        if ($page->content_type === 'markdown') {
-            $rendered = app(MarkdownRenderer::class)->toHtml($rawContent);
-        } else {
-            $rendered = $rawContent;
-        }
+        $rendered = app(PageContentRenderer::class)->render(
+            $page->content,
+            $page->content_type,
+            $workspace,
+            'export',
+        );
 
-        // Resolve [[wiki links]] → absolute app URLs, then rewrite to relative
-        $rendered = $resolver->render($rendered, $workspace);
+        // Rewrite internal page URLs to relative export paths
         $rendered = $this->rewriteInternalLinks($rendered, $slugById);
 
         $tagHtml = $page->tags->map(
-            fn($t) => '<span class="tag">' . $e($t->name) . '</span>'
+            fn ($t) => '<span class="tag">'.$e($t->name).'</span>'
         )->join(' ');
 
-        $attachHtml  = '';
+        $attachHtml = '';
         $attachments = $page->getMedia('attachments');
 
         if ($attachments->isNotEmpty()) {
             $items = $attachments->map(function ($m) use ($e) {
                 $size = Number::fileSize($m->size, precision: 1);
-                $ext  = strtoupper($m->extension);
-                $url  = $e($m->getUrl());
+                $ext = strtoupper($m->extension);
+                $url = $e($m->getUrl());
                 $name = $e($m->name);
 
                 return "<li><a href=\"{$url}\" target=\"_blank\" rel=\"noopener\">{$name}</a> "
-                    . "<span class=\"meta\">({$ext}, {$size})</span></li>";
+                    ."<span class=\"meta\">({$ext}, {$size})</span></li>";
             })->join("\n");
 
             $attachHtml = <<<HTML
@@ -177,11 +172,11 @@ class WorkspaceExportController extends Controller
         }
 
         $ancestors = $this->resolveAncestors($page, $pagesById);
-        $breadNav  = '<a href="../index.html">' . $workspaceName . '</a>';
+        $breadNav = '<a href="../index.html">'.$workspaceName.'</a>';
 
         foreach ($ancestors as $ancestor) {
-            $aSlug   = $ancestor->slug;
-            $aTitle  = $e($ancestor->title);
+            $aSlug = $ancestor->slug;
+            $aTitle = $e($ancestor->title);
             $breadNav .= " &rsaquo; <a href=\"../pages/{$aSlug}.html\">{$aTitle}</a>";
         }
         $breadNav .= " &rsaquo; {$title}";
@@ -241,8 +236,8 @@ class WorkspaceExportController extends Controller
     private function resolveAncestors(Page $page, Collection $pagesById): array
     {
         $ancestors = [];
-        $current   = $page;
-        $visited   = [$page->id];
+        $current = $page;
+        $visited = [$page->id];
 
         while ($current->parent_id !== null) {
             $parent = $pagesById->get($current->parent_id);
@@ -253,7 +248,7 @@ class WorkspaceExportController extends Controller
 
             array_unshift($ancestors, $parent);
             $visited[] = $parent->id;
-            $current   = $parent;
+            $current = $parent;
         }
 
         return $ancestors;
@@ -324,6 +319,15 @@ hr  { border: none; border-top: 1px solid #dee2e6; margin: 1.5rem 0; }
 .callout-tip     { border-color: #198754; background: rgba(25,135,84,.08); }
 .callout-warning { border-color: #fd7e14; background: rgba(253,126,20,.08); }
 .callout-danger  { border-color: #dc3545; background: rgba(220,53,69,.08); }
+
+/* Diagram embeds */
+.codex-diagram-embed { border: 1px solid #dee2e6; border-radius: 8px; margin: 1.25rem 0; overflow: hidden; }
+.codex-diagram-embed__header { padding: 1rem 1.1rem; border-bottom: 1px solid #dee2e6; }
+.codex-diagram-embed__eyebrow { color: #6c757d; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .25rem; }
+.codex-diagram-embed__title { font-size: 1.05rem; font-weight: 600; margin: 0; }
+.codex-diagram-embed__description { color: #6c757d; margin: .35rem 0 0; font-size: .92rem; }
+.codex-diagram-embed__actions { display: none; }
+.codex-diagram-surface { padding: 1rem 1.1rem; background: #f8f9fa; color: #495057; }
 
 /* Layout */
 .export-header { border-bottom: 2px solid #dee2e6; margin-bottom: 2rem; padding-bottom: 1rem; }

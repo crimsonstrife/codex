@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use App\Traits\IsPermissible;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -25,22 +26,23 @@ use Spatie\Tags\HasTags;
 
 class Page extends Model implements HasMedia
 {
-    use InteractsWithMedia;
     use HasFactory;
     use HasSlug;
     use HasTags;
     use HasUuids;
+    use InteractsWithMedia;
     use IsPermissible;
     use LogsActivity;
-    use SoftDeletes;
-
     // NodeTrait and Searchable both define usesSoftDelete(); keep NodeTrait's
     // version since the nestedset tree operations depend on its implementation.
     use NodeTrait, Searchable {
         NodeTrait::usesSoftDelete insteadof Searchable;
     }
 
+    use SoftDeletes;
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -66,8 +68,8 @@ class Page extends Model implements HasMedia
         return [
             'is_published' => 'boolean',
             'published_at' => 'datetime',
-            'locked_at'    => 'datetime',
-            'id'           => 'string',
+            'locked_at' => 'datetime',
+            'id' => 'string',
         ];
     }
 
@@ -86,11 +88,11 @@ class Page extends Model implements HasMedia
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('page')
-            ->setDescriptionForEvent(fn(string $eventName) => match ($eventName) {
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'created',
                 'updated' => 'updated',
                 'deleted' => 'deleted',
-                default   => $eventName,
+                default => $eventName,
             });
     }
 
@@ -146,7 +148,7 @@ class Page extends Model implements HasMedia
         return $this->stars()->where('user_id', $user->id)->exists();
     }
 
-    public function watches(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function watches(): HasMany
     {
         return $this->hasMany(PageWatch::class);
     }
@@ -165,6 +167,17 @@ class Page extends Model implements HasMedia
     public function incomingLinks(): HasMany
     {
         return $this->hasMany(PageLink::class, 'target_page_id');
+    }
+
+    public function diagramEmbeds(): HasMany
+    {
+        return $this->hasMany(PageDiagramEmbed::class);
+    }
+
+    public function embeddedDiagrams(): BelongsToMany
+    {
+        return $this->belongsToMany(Diagram::class, 'page_diagram_embeds')
+            ->withTimestamps();
     }
 
     public function isWatchedBy(User $user): bool
@@ -193,6 +206,7 @@ class Page extends Model implements HasMedia
             return false; // expired
         }
         $viewerId = $viewer?->id ?? auth()->id();
+
         return $this->locked_by !== $viewerId;
     }
 
@@ -218,6 +232,7 @@ class Page extends Model implements HasMedia
     public function getReadingTimeAttribute(): int
     {
         $words = str_word_count(strip_tags($this->content ?? ''));
+
         return max(1, (int) ceil($words / 200));
     }
 
@@ -251,8 +266,8 @@ class Page extends Model implements HasMedia
     public function toSearchableArray(): array
     {
         return [
-            'id'      => $this->id,
-            'title'   => $this->title . ' ' . $this->title, // weight title 2×
+            'id' => $this->id,
+            'title' => $this->title.' '.$this->title, // weight title 2×
             'excerpt' => $this->excerpt ?? '',
             'content' => strip_tags($this->content ?? ''),
         ];
@@ -266,7 +281,7 @@ class Page extends Model implements HasMedia
     {
         return $query->where(function ($q) use ($term) {
             $q->where('title', 'like', "%{$term}%")
-              ->orWhere('content', 'like', "%{$term}%");
+                ->orWhere('content', 'like', "%{$term}%");
         });
     }
 }

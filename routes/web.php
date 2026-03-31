@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\DiagramLinkController;
 use App\Http\Controllers\Api\MentionController;
 use App\Http\Controllers\Api\PageLinkController;
 use App\Http\Controllers\Auth\ForgeSsoController;
@@ -157,6 +158,11 @@ Route::middleware([
     // API for TinyMCE wiki-links autocomplete (feat 3.4)
     Route::prefix('api/pages')->name('api.pages.')->group(function () {
         Route::get('/search', [PageLinkController::class, 'search'])->name('search');
+    });
+
+    // API for TinyMCE diagram embeds
+    Route::prefix('api/diagrams')->name('api.diagrams.')->group(function () {
+        Route::get('/search', [DiagramLinkController::class, 'search'])->name('search');
     });
 
     // Notifications

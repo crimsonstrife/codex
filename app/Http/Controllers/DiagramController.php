@@ -27,6 +27,11 @@ class DiagramController extends Controller
     {
         abort_if($diagram->workspace_id !== $workspace->id, 404);
         $this->authorize('view', $diagram);
+        $diagram->load([
+            'embeddedPages' => fn ($query) => $query
+                ->select('pages.id', 'pages.title', 'pages.slug', 'pages.workspace_id')
+                ->orderBy('title'),
+        ]);
         $drawioUrl = CodexRuntimeConfig::drawioUrl();
 
         return view('diagrams.show', compact('workspace', 'diagram', 'drawioUrl'));
