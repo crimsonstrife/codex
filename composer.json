@@ -42,7 +42,9 @@
         "spatie/laravel-settings": "^3.4",
         "spatie/laravel-sluggable": "^3.7",
         "spatie/laravel-tags": "^4.10",
-        "spatie/security-advisories-health-check": "^1.3"
+        "spatie/security-advisories-health-check": "^1.3",
+        "symfony/http-client": "^7.4",
+        "symfony/mailgun-mailer": "^7.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
