@@ -63,18 +63,22 @@
 
                     <!-- Teams dropdown -->
                     @if (Laravel\Jetstream\Jetstream::hasTeamFeatures())
+                        @php($currentTeam = Auth::user()->currentTeam)
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
                                     data-bs-toggle="dropdown" aria-expanded="false">
-                                {{ Auth::user()->currentTeam->name }}
+                                {{ $currentTeam?->name ?? __('No Team') }}
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><span class="dropdown-header">{{ __('Manage Team') }}</span></li>
-                                <li>
-                                    <x-dropdown-link href="{{ route('teams.show', Auth::user()->currentTeam->id) }}">
-                                        {{ __('Team Settings') }}
-                                    </x-dropdown-link>
-                                </li>
+                                @if ($currentTeam)
+                                    <li><span class="dropdown-header">{{ __('Manage Team') }}</span></li>
+                                    <li>
+                                        <x-dropdown-link href="{{ route('teams.show', $currentTeam->id) }}">
+                                            {{ __('Team Settings') }}
+                                        </x-dropdown-link>
+                                    </li>
+                                @endif
+
                                 @can('create', Laravel\Jetstream\Jetstream::newTeamModel())
                                     <li>
                                         <x-dropdown-link href="{{ route('teams.create') }}">
